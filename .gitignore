@@ -5,6 +5,10 @@ erl_crash.dump
 *.ez
 *.beam
 
+/config/dev.secret.exs
+/config/test.secret.exs
+/config/prod.secret.exs
+
 # -*- mode: gitignore; -*-
 *~
 \#*\#
