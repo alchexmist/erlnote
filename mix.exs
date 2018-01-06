@@ -43,7 +43,8 @@ defmodule Erlnote.Mixfile do
       {:plug, "~> 1.4"},
       {:absinthe, "~> 1.4"},
       {:absinthe_plug, "~> 1.4"},
-      {:poison, "~> 3.1"}
+      {:poison, "~> 3.1"},
+      {:absinthe_ecto, "~> 0.1.3"}
     ]
   end
 
