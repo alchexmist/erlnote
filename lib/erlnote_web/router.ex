@@ -20,7 +20,7 @@ defmodule ErlnoteWeb.Router do
   end
 
   # Other scopes may use custom stacks.
-  # scope "/api", ErlnoteWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", ErlnoteWeb do
+    pipe_through :api
+  end
 end
