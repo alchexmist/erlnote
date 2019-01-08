@@ -13,14 +13,21 @@ defmodule ErlnoteWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", ErlnoteWeb do
-    pipe_through :browser
+  scope "/" do
+    pipe_through :api
 
-    get "/", PageController, :index
+    forward "/api", Absinthe.Plug, schema: ErlnoteWeb.Schema
+    forward "/graphiql", Absinthe.Plug.GraphiQL, schema: ErlnoteWeb.Schema, interface: :simple
   end
+  
+  # scope "/", ErlnoteWeb do
+  #   pipe_through :browser
+
+  #   get "/", PageController, :index
+  # end
 
   # Other scopes may use custom stacks.
-  scope "/api", ErlnoteWeb do
-    pipe_through :api
-  end
+  # scope "/api", ErlnoteWeb do
+  #   pipe_through :api
+  # end
 end
