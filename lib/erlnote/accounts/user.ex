@@ -15,6 +15,8 @@ defmodule Erlnote.Accounts.User do
     user
     |> cast(attrs, [:name, :username])
     |> validate_required([:name, :username])
+    |> validate_length(:name, min:1, max: 255)
+    |> validate_length(:username, min: 1, max: 50)
     |> unique_constraint(:username)
   end
 end
