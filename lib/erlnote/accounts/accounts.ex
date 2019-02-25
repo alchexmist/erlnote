@@ -6,7 +6,7 @@ defmodule Erlnote.Accounts do
   import Ecto.Query, warn: false
   alias Erlnote.Repo
 
-  alias Erlnote.Accounts.User
+  alias Erlnote.Accounts.{User, Credential}
 
   @doc """
   Returns the list of users.
