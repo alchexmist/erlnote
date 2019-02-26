@@ -2,6 +2,7 @@ defmodule Erlnote.Accounts.Credential do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @email_regex ~r/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/
 
   schema "credentials" do
     field :email, :string
@@ -19,6 +20,7 @@ defmodule Erlnote.Accounts.Credential do
     |> cast(attrs, [:email, :password])
     |> validate_required([:email, :password])
     |> validate_length(:password, min: 8, max: 255)
+    |> validate_format(:email, @email_regex)
     |> unique_constraint(:email)
     |> put_pass_hash()
   end
