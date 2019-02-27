@@ -8,7 +8,7 @@ defmodule Erlnote.Accounts.Credential do
     field :email, :string
     field :password, :string, virtual: true
     field :password_hash, :string
-    field :user_id, :id
+    #field :user_id, :id
     belongs_to :user, Erlnote.Accounts.User
 
     timestamps()
