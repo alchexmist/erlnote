@@ -3,11 +3,15 @@ defmodule Erlnote.Accounts.User do
   import Ecto.Changeset
 
   alias Erlnote.Accounts.Credential
+  alias Erlnote.Boards.Board
 
   schema "users" do
     field :name, :string
     field :username, :string
     has_one :credential, Credential
+    # Los hijos los añadimos con build_assoc.
+    has_many :owner_boards, Board, foreign_key: :owner, on_replace: :delete
+    many_to_many :boards, Erlnote.Boards.Board, join_through: Erlnote.Boards.BoardUser
 
     timestamps()
   end
