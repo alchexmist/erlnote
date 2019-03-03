@@ -9,3 +9,19 @@
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
+alias Erlnote.Repo
+alias Erlnote.Accounts.User
+
+Repo.insert!(
+    User.registration_changeset(
+        %User{},
+        %{
+            username: "asm", 
+            name: "asm", 
+            credential: %{ 
+                email: "asm@example.com", 
+                password: "altosecreto"
+            }
+        }
+    )
+)
