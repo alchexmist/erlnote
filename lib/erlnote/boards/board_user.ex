@@ -4,8 +4,8 @@ defmodule Erlnote.Boards.BoardUser do
 
 
   schema "boards_users" do
-    belongs_to :users, Erlnote.Accounts.User
-    belongs_to :boards, Erlnote.Boards.Board
+    belongs_to :user, Erlnote.Accounts.User
+    belongs_to :board, Erlnote.Boards.Board
 
     timestamps()
   end
