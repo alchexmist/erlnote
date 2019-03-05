@@ -3,7 +3,8 @@ defmodule Erlnote.Notes.Note do
   import Ecto.Changeset
 
   alias Erlnote.Accounts.User
-  alias Erlnote.Notes.{Notepad, NoteUser}
+  alias Erlnote.Notes.{Notepad, NoteUser, NoteTag}
+  alias Erlnote.Tags.Tag
 
   schema "notes" do
     field :body, :string
@@ -13,6 +14,7 @@ defmodule Erlnote.Notes.Note do
     #field :notepad_id, :id
     belongs_to :notepad, Notepad
     many_to_many :users, User, join_through: NoteUser
+    many_to_many :tags, Tag, join_through: NoteTag
 
     timestamps()
   end
