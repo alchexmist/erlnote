@@ -2,14 +2,16 @@ defmodule Erlnote.Notes.Note do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Erlnote.Accounts.User
+  alias Erlnote.Notes.Notepad
 
   schema "notes" do
     field :body, :string
     field :title, :string
     #field :user_id, :id
-    belongs_to :user, Erlnote.Accounts.User
+    belongs_to :user, User
     #field :notepad_id, :id
-    belongs_to :notepad, Erlnote.Notes.Notepad
+    belongs_to :notepad, Notepad
 
     timestamps()
   end
