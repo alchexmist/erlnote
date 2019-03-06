@@ -10,7 +10,7 @@ defmodule Erlnote.Tags.Tag do
     many_to_many :notepads, Notepad, join_through: NotepadTag
     many_to_many :notes, Note, join_through: NoteTag
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
   @doc false

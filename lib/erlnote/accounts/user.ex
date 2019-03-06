@@ -17,7 +17,7 @@ defmodule Erlnote.Accounts.User do
     many_to_many :boards, Board, join_through: BoardUser
     many_to_many :notes_access, Note, join_through: NoteUser
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
   @doc false

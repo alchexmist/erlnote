@@ -7,7 +7,7 @@ defmodule Erlnote.Boards.BoardUser do
     belongs_to :user, Erlnote.Accounts.User
     belongs_to :board, Erlnote.Boards.Board
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
   @doc false

@@ -11,7 +11,7 @@ defmodule Erlnote.Notes.NoteUser do
     #field :user_id, :id
     belongs_to :user, User
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
   @doc false

@@ -11,7 +11,7 @@ defmodule Erlnote.Notes.NotepadTag do
     #field :tag_id, :id
     belongs_to :tag, Tag
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
   @doc false

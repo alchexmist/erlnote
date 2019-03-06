@@ -11,7 +11,7 @@ defmodule Erlnote.Boards.Board do
     belongs_to :user, Erlnote.Accounts.User, foreign_key: :owner
     many_to_many :users, Erlnote.Accounts.User, join_through: Erlnote.Boards.BoardUser
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
   @doc false
