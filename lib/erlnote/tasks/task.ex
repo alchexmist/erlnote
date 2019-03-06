@@ -2,6 +2,7 @@ defmodule Erlnote.Tasks.Task do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Erlnote.Tasks.Tasklist
 
   schema "tasks" do
     field :description, :string
@@ -10,6 +11,7 @@ defmodule Erlnote.Tasks.Task do
     field :priority, :string, default: "NORMAL"
     field :start_datetime, :utc_datetime
     field :state, :string, default: "INPROGRESS"
+    belongs_to :tasklist, Tasklist
 
     timestamps(type: :utc_datetime)
   end
