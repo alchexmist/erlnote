@@ -5,6 +5,7 @@ defmodule Erlnote.Accounts.User do
   alias Erlnote.Accounts.Credential
   alias Erlnote.Boards.{Board, BoardUser}
   alias Erlnote.Notes.{Notepad, Note, NoteUser}
+  alias Erlnote.Tasks.{Tasklist, TasklistUser}
 
   schema "users" do
     field :name, :string
@@ -14,8 +15,10 @@ defmodule Erlnote.Accounts.User do
     has_many :owner_boards, Board, foreign_key: :owner, on_replace: :delete
     has_many :notepads, Notepad, on_replace: :delete
     has_many :notes, Note, on_replace: :delete
+    has_many :owner_tasklists, Tasklist, on_replace: :delete
     many_to_many :boards, Board, join_through: BoardUser
     many_to_many :notes_access, Note, join_through: NoteUser
+    many_to_many :tasklists, Tasklist, join_through: TasklistUser
 
     timestamps(type: :utc_datetime)
   end

@@ -3,13 +3,14 @@ defmodule Erlnote.Tags.Tag do
   import Ecto.Changeset
 
   alias Erlnote.Notes.{Notepad, NotepadTag, NoteTag, Note}
-
+  alias Erlnote.Tasks.{Tasklist, TasklistTag}
 
   schema "tags" do
     field :name, :string
     many_to_many :notepads, Notepad, join_through: NotepadTag
     many_to_many :notes, Note, join_through: NoteTag
-
+    many_to_many :tasklists, Tasklist, join_through: TasklistTag
+    
     timestamps(type: :utc_datetime)
   end
 
