@@ -2,6 +2,8 @@ defmodule Erlnote.Accounts.Credential do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Erlnote.Accounts.User
+
   @email_regex ~r/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/
 
   schema "credentials" do
@@ -9,7 +11,7 @@ defmodule Erlnote.Accounts.Credential do
     field :password, :string, virtual: true
     field :password_hash, :string
     #field :user_id, :id
-    belongs_to :user, Erlnote.Accounts.User
+    belongs_to :user, User, on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end
