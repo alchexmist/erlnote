@@ -27,7 +27,7 @@ defmodule Erlnote.Accounts.User do
   def registration_changeset(user, params) do
     user
     |> changeset(params)
-    |> cast_assoc(:credential, with: &Credential.changeset/2, required: true)
+    |> cast_assoc(:credentials, with: &Credential.changeset/2, required: true)
   end
 
   @doc false

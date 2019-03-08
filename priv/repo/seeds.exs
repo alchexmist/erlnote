@@ -18,7 +18,7 @@ Repo.insert!(
         %{
             username: "asm", 
             name: "asm", 
-            credential: [%{ 
+            credentials: [%{ 
                 email: "asm@example.com", 
                 password: "altosecreto"
             }]
