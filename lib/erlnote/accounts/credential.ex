@@ -12,7 +12,7 @@ defmodule Erlnote.Accounts.Credential do
     field :password_hash, :string
     #field :user_id, :id
     belongs_to :user, User, on_replace: :delete
-
+    
     timestamps(type: :utc_datetime)
   end
 

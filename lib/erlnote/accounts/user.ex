@@ -10,7 +10,7 @@ defmodule Erlnote.Accounts.User do
   schema "users" do
     field :name, :string
     field :username, :string
-    has_many :credential, Credential, on_replace: :delete
+    has_many :credentials, Credential, on_replace: :delete
     # Los hijos los añadimos con build_assoc.
     has_many :owner_boards, Board, foreign_key: :owner, on_replace: :delete
     has_many :notepads, Notepad, on_replace: :delete
