@@ -17,7 +17,8 @@ defmodule Erlnote.Tasks.TasklistTag do
   @doc false
   def changeset(tasklist_tag, attrs) do
     tasklist_tag
-    |> cast(attrs, [])
-    |> validate_required([])
+    |> cast(attrs, [:tasklist_id, :tag_id])
+    |> validate_required([:tasklist_id, :tag_id])
+    |> unique_constraint(:tasklist_id, name: :tasklists_tags_tasklist_id_tag_id_index)
   end
 end
