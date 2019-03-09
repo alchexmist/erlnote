@@ -17,7 +17,8 @@ defmodule Erlnote.Notes.NoteUser do
   @doc false
   def changeset(note_user, attrs) do
     note_user
-    |> cast(attrs, [])
-    |> validate_required([])
+    |> cast(attrs, [:note_id, :user_id])
+    |> validate_required([:note_id, :user_id])
+    |> unique_constraint(:note_id, name: :notes_users_note_id_user_id_index)
   end
 end
