@@ -7,6 +7,10 @@ defmodule Erlnote.Accounts.User do
   alias Erlnote.Notes.{Notepad, Note, NoteUser}
   alias Erlnote.Tasks.{Tasklist, TasklistUser}
 
+  # If your :join_through is a schema, your join table may be structured as
+  # any other table in your codebase, including timestamps. You may define
+  # a table with primary keys.
+
   schema "users" do
     field :name, :string
     field :username, :string

@@ -2,6 +2,9 @@ defmodule Erlnote.Boards.Board do
   use Ecto.Schema
   import Ecto.Changeset
 
+  # If your :join_through is a schema, your join table may be structured as
+  # any other table in your codebase, including timestamps. You may define
+  # a table with primary keys.
 
   schema "boards" do
     field :deleted, :boolean, default: false

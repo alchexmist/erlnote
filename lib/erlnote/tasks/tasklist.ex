@@ -6,6 +6,10 @@ defmodule Erlnote.Tasks.Tasklist do
   alias Erlnote.Tasks.{TasklistUser, TasklistTag, Task}
   alias Erlnote.Tags.Tag
 
+  # If your :join_through is a schema, your join table may be structured as
+  # any other table in your codebase, including timestamps. You may define
+  # a table with primary keys.
+  
   schema "tasklists" do
     field :title, :string
     # field :user_id, :id

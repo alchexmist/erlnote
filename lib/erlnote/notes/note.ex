@@ -6,6 +6,10 @@ defmodule Erlnote.Notes.Note do
   alias Erlnote.Notes.{Notepad, NoteUser, NoteTag}
   alias Erlnote.Tags.Tag
 
+  # If your :join_through is a schema, your join table may be structured as
+  # any other table in your codebase, including timestamps. You may define
+  # a table with primary keys.
+  
   schema "notes" do
     field :body, :string
     field :title, :string
