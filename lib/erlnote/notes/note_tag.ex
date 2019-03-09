@@ -17,7 +17,8 @@ defmodule Erlnote.Notes.NoteTag do
   @doc false
   def changeset(note_tag, attrs) do
     note_tag
-    |> cast(attrs, [])
-    |> validate_required([])
+    |> cast(attrs, [:note_id, :tag_id])
+    |> validate_required([:note_id, :tag_id])
+    |> unique_constraint(:note_id, name: :notes_tags_note_id_tag_id_index)
   end
 end
