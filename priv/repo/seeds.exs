@@ -25,3 +25,23 @@ Repo.insert!(
         }
     )
 )
+
+Repo.insert!(
+    User.registration_changeset(
+        %User{},
+        %{
+            name: "jsg",
+            username: "jsg",
+            credentials: [
+                %{
+                    email: "jsg@example.com",
+                    password: "jsgjsgjsg"
+                },
+                %{
+                    email: "jsg1@example.com",
+                    password: "jjjjjjjjj"
+                }
+            ]
+        }
+    )
+)

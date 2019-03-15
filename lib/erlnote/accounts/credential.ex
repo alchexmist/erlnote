@@ -23,15 +23,26 @@ defmodule Erlnote.Accounts.Credential do
     |> validate_required([:email, :password])
     |> validate_length(:password, min: 8, max: 255)
     |> validate_format(:email, @email_regex)
+    |> email_to_lowercase()
     |> unique_constraint(:email)
     |> put_pass_hash()
+  end
+
+  defp email_to_lowercase(changeset) do
+    case changeset do
+      %Ecto.Changeset{valid?: true, changes: %{email: email}} ->
+        put_change(changeset, :email, String.downcase(email))
+      _ ->
+        changeset 
+    end
   end
 
   defp put_pass_hash(changeset) do
     case changeset do
       %Ecto.Changeset{valid?: true, changes: %{password: passwd}} ->
         put_change(changeset, :password_hash, Comeonin.Pbkdf2.hashpwsalt(passwd))
-        # Luego usaremos Comeonin.Pbkdf2.verify_pass(password, stored_hash)
+        # Luego usaremos Comeonin.Pbkdf2.check_pass(password)
+        # Looks for password_hash field (in struct) 
       _ ->
         changeset
     end

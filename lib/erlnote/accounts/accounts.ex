@@ -22,45 +22,106 @@ defmodule Erlnote.Accounts do
   end
 
   @doc """
-  Gets a single user.
+  Gets a single user by id.
 
   Raises `Ecto.NoResultsError` if the User does not exist.
 
   ## Examples
 
-      iex> get_user!(123)
+      iex> get_user_by_id!(123)
       %User{}
 
-      iex> get_user!(456)
+      iex> get_user_by_id!(456)
       ** (Ecto.NoResultsError)
 
   """
-  def get_user!(id), do: Repo.get!(User, id)
+  def get_user_by_id!(id) when is_integer(id), do: Repo.get!(User, id)
 
   @doc """
-  Creates a user.
+  Gets a single user by id.
+
+  Returns `nil` if the User does not exist.
 
   ## Examples
 
-      iex> create_user(%{field: value})
-      {:ok, %User{}}
+      iex> get_user_by_id(123)
+      %User{}
 
-      iex> create_user(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
+      iex> get_user_by_id(456)
+      nil
 
   """
-  def create_user(attrs \\ %{}) do
-    %User{}
-    |> User.changeset(attrs)
-    |> Repo.insert()
+  def get_user_by_id(id) when is_integer(id), do: Repo.get(User, id)
+
+  @doc """
+  Gets a single user by username.
+
+  Returns `nil` if the User does not exist.
+
+  ## Examples
+
+      iex> get_user_by_username("asm")
+      %User{}
+
+      iex> get_user_by_username!("dark side of the force")
+      nil
+
+  """
+  def get_user_by_username(username) when is_binary(username) do
+    Repo.get_by(User, username: username)
   end
 
   @doc """
-  Updates a user.
+  Gets user's credentials from user's id.
+
+  Returns a empty list if the user's id does not exist.
 
   ## Examples
 
-      iex> update_user(user, %{field: new_value})
+      iex> get_credentials!(1)
+      [%Credential{}]
+
+      iex> get_credentials(456)
+      []
+
+  """
+  def get_credentials(id) do
+    case (
+      l = (from u in User,
+      join: t in assoc(u, :credentials),
+      where: u.id == ^id,
+      preload: [credentials: t])
+      |> Repo.one()
+    ) do
+      nil -> []
+      _ -> l.credentials
+    end
+  end
+
+  # @doc """
+  # Creates a user. (Go to seeds.exs).
+
+  # ## Examples
+
+  #     iex> create_user(%{field: value})
+  #     {:ok, %User{}}
+
+  #     iex> create_user(%{field: bad_value})
+  #     {:error, %Ecto.Changeset{}}
+
+  # """
+  def create_user(attrs \\ %{}) do
+    %User{}
+    |> User.registration_changeset(attrs)
+    |> Repo.insert()
+  end
+  
+  @doc """
+  Updates a user. (Get user: Repo.get_by(User, username: "asm"))
+
+  ## Examples
+
+      iex> update_user(user, %{name: "asm_aux"})
       {:ok, %User{}}
 
       iex> update_user(user, %{field: bad_value})
@@ -73,6 +134,25 @@ defmodule Erlnote.Accounts do
     |> Repo.update()
   end
 
+  def update_credential(%Credential{} = old_credential, %Credential{} = new_credential) do
+    with email = old_credential.email,
+         true <- !is_nil(email),
+         lower_email = String.downcase(email),
+         oldc = Repo.one(from c in Credential, where: c.email == ^lower_email),
+         true <- !is_nil(oldc),
+         {:ok, %Credential{}} <- Comeonin.Pbkdf2.check_pass(oldc, old_credential.password) do
+      Credential.changeset(oldc, %{email: new_credential.email, password: new_credential.password})
+      # Changeset's field: "action" -> Set by Ecto.Repo function
+      |> Repo.update
+    else
+      _ -> nil
+    end
+  end
+ 
+  def delete_credential(%Credential{} = credential) do
+    Repo.delete(credential)
+  end
+  
   @doc """
   Deletes a User.
 
