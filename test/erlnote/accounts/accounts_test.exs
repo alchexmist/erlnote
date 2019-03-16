@@ -35,6 +35,7 @@ defmodule Erlnote.AccountsTest do
       ]
     }
 
+    # Not for all test. Discard setup().
     def user_fixture(attrs \\ %{}) do
       {:ok, user} =
         attrs
@@ -44,25 +45,28 @@ defmodule Erlnote.AccountsTest do
       user
     end
 
+    defp get_user_without_assoc(%User{} = user) do
+      {user.name, user.username}
+    end
+
     test "list_users/0 returns all users" do
       user = user_fixture()
-      #assert Accounts.list_users() == [user]
       assert Enum.reduce(Accounts.list_users(), [], fn x, acc -> [{x.name, x.username}|acc] end) == [{user.name, user.username}]
     end
 
     test "get_user_by_id!/1 returns the user with given id" do
       user = user_fixture()
-      assert (fn x -> {x.name, x.username} end).(Accounts.get_user_by_id!(user.id)) == {user.name, user.username}
+      assert get_user_without_assoc(Accounts.get_user_by_id!(user.id)) == get_user_without_assoc(user)
     end
 
     test "get_user_by_id/1 returns the user with given id" do
       user = user_fixture()
-      assert (fn x -> {x.name, x.username} end).(Accounts.get_user_by_id(user.id)) == {user.name, user.username}
+      assert get_user_without_assoc(Accounts.get_user_by_id(user.id)) == get_user_without_assoc(user)
     end
 
     test "get_user_by_username/1 returns the user with given username" do
       user = user_fixture()
-      assert (fn x -> {x.name, x.username} end).(Accounts.get_user_by_username(user.username)) == {user.name, user.username}
+      assert get_user_without_assoc(Accounts.get_user_by_username(user.username)) == get_user_without_assoc(user)
     end
 
     test "create_user/1 with valid data creates a user" do
@@ -85,7 +89,7 @@ defmodule Erlnote.AccountsTest do
     test "update_user/2 with invalid data returns error changeset" do
       user = user_fixture()
       assert {:error, %Ecto.Changeset{}} = Accounts.update_user(user, @invalid_attrs)
-      assert (fn x -> {x.name, x.username} end).(Accounts.get_user_by_id(user.id)) == {user.name, user.username}
+      assert get_user_without_assoc(Accounts.get_user_by_id(user.id)) == get_user_without_assoc(user)
     end
 
     test "delete_user/1 deletes the user" do
