@@ -37,8 +37,10 @@ defmodule Erlnote.Boards do
   end
 
   def list_is_contributor_boards(user_id) when is_integer(user_id) do
-    # Falta la implementación.
-    :ok  
+    case user = Accounts.get_user_by_id(user_id) do
+      nil -> []
+      _ -> (user |> Repo.preload(:boards)).boards
+    end
   end
 
   @doc """
@@ -55,7 +57,7 @@ defmodule Erlnote.Boards do
       ** (Ecto.NoResultsError)
 
   """
-  def get_board!(id), do: Repo.get!(Board, id)
+  def get_board!(id) when is_integer(id), do: Repo.get!(Board, id)
 
    @doc """
   Gets a single board.
@@ -68,10 +70,10 @@ defmodule Erlnote.Boards do
       %Board{}
 
       iex> get_board(456)
-      ** (Ecto.NoResultsError)
+      nil
 
   """
-  def get_board(id), do: Repo.get(Board, id)
+  def get_board(id) when is_integer(id), do: Repo.get(Board, id)
 
   @doc """
   Creates a board.
@@ -136,7 +138,7 @@ defmodule Erlnote.Boards do
           user_id == board.owner ->
             update_board(board, %{deleted: true})
           true ->
-            from(r in BoardUser, where: r.user_id == ^user_id) |> Repo.delete_all
+            from(r in BoardUser, where: r.user_id == ^user_id, where: r.board_id == ^board.id) |> Repo.delete_all
             if Repo.all(from(u in BoardUser, where: u.board_id == ^board.id)) == [] and board.deleted do
               Repo.delete(board)
             end
@@ -156,4 +158,18 @@ defmodule Erlnote.Boards do
   def change_board(%Board{} = board) do
     Board.changeset(board, %{})
   end
+
+  def link_board_to_user(board_id, user_id) when is_integer(board_id) and is_integer(user_id) do
+      user = Accounts.get_user_by_id(user_id)
+      board = get_board(board_id)
+      cond do
+        is_nil(user) or is_nil(board) -> {:error, "user ID or board ID not found."}
+        (board |> Repo.preload(:user)).user.id == user_id -> {:ok, "linked"}
+        true ->
+          Repo.insert(
+            BoardUser.changeset(%BoardUser{}, %{board_id: board.id, user_id: user.id})
+          )
+          # Return {:ok, _} o {:error, changeset}
+      end
+    end
 end
