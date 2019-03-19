@@ -13,6 +13,7 @@ defmodule Erlnote.Notes.Note do
   schema "notes" do
     field :body, :string
     field :title, :string
+    field :deleted, :boolean, default: false
     #field :user_id, :id
     belongs_to :user, User
     #field :notepad_id, :id

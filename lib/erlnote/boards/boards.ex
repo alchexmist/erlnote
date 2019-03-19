@@ -131,7 +131,7 @@ defmodule Erlnote.Boards do
     case board_users = Repo.preload(board, :users) do
       nil -> {:error, %Ecto.Changeset{}}
       _ ->
-        IO.inspect(board_users.users)
+        board = (board |> Repo.preload(:user))
         cond do
           board_users.users == [] and user_id == board.owner ->
             Repo.delete(board)

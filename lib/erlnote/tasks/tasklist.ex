@@ -2,6 +2,9 @@ defmodule Erlnote.Tasks.Tasklist do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @max_title_len 255
+  @min_title_len 1
+
   alias Erlnote.Accounts.User
   alias Erlnote.Tasks.{TasklistUser, TasklistTag, Task}
   alias Erlnote.Tags.Tag
@@ -12,6 +15,7 @@ defmodule Erlnote.Tasks.Tasklist do
   
   schema "tasklists" do
     field :title, :string
+    field :deleted, :boolean, default: false
     # field :user_id, :id
     belongs_to :user, User, on_replace: :delete
     has_many :tasks, Task, on_replace: :delete
@@ -22,9 +26,27 @@ defmodule Erlnote.Tasks.Tasklist do
   end
 
   @doc false
+  def update_changeset(tasklist, params) do
+    tasklist
+    |> cast(params, [:deleted, :title])
+    |> validate_inclusion(:deleted, [true, false])
+    |> validate_length(:title, min: @min_title_len, max: @max_title_len)
+  end
+
+  @doc false
+  def create_changeset(tasklist, params) do
+    tasklist
+    |> cast(params, [:deleted])
+    |> validate_required([:deleted])
+    |> validate_inclusion(:deleted, [true, false])
+    |> changeset(params)
+  end
+
+  @doc false
   def changeset(tasklist, attrs) do
     tasklist
     |> cast(attrs, [:title])
     |> validate_required([:title])
+    |> validate_length(:title, min: @min_title_len, max: @max_title_len)
   end
 end
