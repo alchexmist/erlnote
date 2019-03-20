@@ -16,6 +16,20 @@ defmodule Erlnote.Tasks.TasklistUser do
     timestamps(type: :utc_datetime)
   end
 
+  def update_read_permission_changeset(tasklist_user, attrs) do
+    tasklist_user
+    |> cast(attrs, [:can_read, :tasklist_id, :user_id])
+    |> validate_required([:can_read, :tasklist_id, :user_id])
+    |> unique_constraint(:tasklist_id, name: :tasklists_users_tasklist_id_user_id_index)
+  end
+
+  def update_write_permission_changeset(tasklist_user, attrs) do
+    tasklist_user
+    |> cast(attrs, [:can_write, :tasklist_id, :user_id])
+    |> validate_required([:can_write, :tasklist_id, :user_id])
+    |> unique_constraint(:tasklist_id, name: :tasklists_users_tasklist_id_user_id_index)
+  end
+
   @doc false
   def changeset(tasklist_user, attrs) do
     tasklist_user

@@ -70,6 +70,42 @@ defmodule Erlnote.Tasks do
     end
   end
 
+  @doc false
+  defp set_tasklist_user_permissions(user_id, tasklist_id, pname, pvalue) do
+    case Repo.one(
+        from r in TasklistUser,
+        where: r.user_id == ^user_id,
+        where: r.tasklist_id == ^tasklist_id
+      ) do
+        nil -> {:error, "User-Tasklist assoc: not found."}
+        x ->
+          case pname do
+            :can_read ->
+              x
+              #|> Repo.preload(:tasklist)
+              #|> Repo.preload(:user)
+              |> TasklistUser.update_read_permission_changeset(%{tasklist_id: tasklist_id, user_id: user_id, can_read: pvalue})
+              |> Repo.update()
+            :can_write ->
+              x
+              #|> Repo.preload(:tasklist)
+              #|> Repo.preload(:user)
+              |> TasklistUser.update_write_permission_changeset(%{tasklist_id: tasklist_id, user_id: user_id, can_write: pvalue})
+              |> Repo.update()
+          end
+      end
+  end
+
+  def set_can_read_from_tasklist(user_id, tasklist_id, can_read)
+    when is_integer(user_id) and is_integer(tasklist_id) and is_boolean(can_read) do
+      set_tasklist_user_permissions(user_id, tasklist_id, :can_read, can_read)
+  end
+
+  def set_can_write_to_tasklist(user_id, tasklist_id, can_write)
+    when is_integer(user_id) and is_integer(tasklist_id) and is_boolean(can_write) do
+      set_tasklist_user_permissions(user_id, tasklist_id, :can_write, can_write)
+  end
+  
   @doc """
   Returns the list of tasks.
 
