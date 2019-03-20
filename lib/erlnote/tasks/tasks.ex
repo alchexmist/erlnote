@@ -105,7 +105,37 @@ defmodule Erlnote.Tasks do
     when is_integer(user_id) and is_integer(tasklist_id) and is_boolean(can_write) do
       set_tasklist_user_permissions(user_id, tasklist_id, :can_write, can_write)
   end
-  
+
+  defp can_read_or_write?(user_id, tasklist_id) do
+    case tl = (get_tasklist(tasklist_id) |> Repo.preload(:user)) do
+      nil -> {false, false}
+      _ ->
+        cond do
+          user_id == tl.user.id -> {true, true}
+          true ->
+            record = Repo.one(from r in TasklistUser, where: r.tasklist_id == ^tl.id, where: r.user_id == ^user_id)
+            not_is_nil_record = not is_nil(record)
+            {
+              not_is_nil_record and record.can_read == true,
+              not_is_nil_record and record.can_write == true
+            }
+        end
+    end
+  end
+
+  def can_write?(user_id, tasklist_id) do
+    Kernel.elem(can_read_or_write?(user_id, tasklist_id), 1)
+  end
+
+  def can_read?(user_id, tasklist_id) do
+    Kernel.elem(can_read_or_write?(user_id, tasklist_id), 0)
+  end
+
+  def add_task_to_tasklist(user_id, tasklist_id, task)
+    when is_integer(user_id) and is_integer(tasklist_id) and is_map(task) do
+      :ok #Falta implementación.
+  end
+
   @doc """
   Returns the list of tasks.
 

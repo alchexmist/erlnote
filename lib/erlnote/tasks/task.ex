@@ -11,7 +11,7 @@ defmodule Erlnote.Tasks.Task do
     field :priority, :string, default: "NORMAL"
     field :start_datetime, :utc_datetime
     field :state, :string, default: "INPROGRESS"
-    belongs_to :tasklist, Tasklist
+    belongs_to :tasklist, Tasklist, on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end

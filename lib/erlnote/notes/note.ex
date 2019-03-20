@@ -15,9 +15,9 @@ defmodule Erlnote.Notes.Note do
     field :title, :string
     field :deleted, :boolean, default: false
     #field :user_id, :id
-    belongs_to :user, User
+    belongs_to :user, User, on_replace: :delete
     #field :notepad_id, :id
-    belongs_to :notepad, Notepad
+    belongs_to :notepad, Notepad, on_replace: :delete
     many_to_many :users, User, join_through: NoteUser
     many_to_many :tags, Tag, join_through: NoteTag
 

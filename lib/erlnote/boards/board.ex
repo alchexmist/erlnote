@@ -14,7 +14,7 @@ defmodule Erlnote.Boards.Board do
     field :text, :string
     field :title, :string
     #field :owner, :id
-    belongs_to :user, Erlnote.Accounts.User, foreign_key: :owner
+    belongs_to :user, Erlnote.Accounts.User, foreign_key: :owner, on_replace: :delete
     many_to_many :users, Erlnote.Accounts.User, join_through: Erlnote.Boards.BoardUser
 
     timestamps(type: :utc_datetime)
