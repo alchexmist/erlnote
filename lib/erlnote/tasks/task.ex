@@ -42,9 +42,9 @@ defmodule Erlnote.Tasks.Task do
 
   defp validate_end_date_gt_start_date(changeset) do
     case changeset do
-      %Ecto.Changeset{valid?: true, changes: %{start_datetime: start_dt}} ->
+      %Ecto.Changeset{valid?: true, changes: %{start_datetime: _start_dt}} ->
         start_date_gt_end_date(changeset)
-      %Ecto.Changeset{valid?: true, changes: %{end_datetime: end_dt}} ->
+      %Ecto.Changeset{valid?: true, changes: %{end_datetime: _end_dt}} ->
         start_date_gt_end_date(changeset)
       _ ->
         changeset
