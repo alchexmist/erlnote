@@ -52,10 +52,8 @@ defmodule Erlnote.Tasks.Task do
   end
 
   defp start_date_gt_end_date(changeset) do
-    start_dt = get_field(changeset, :start_datetime)
-    end_dt = get_field(changeset, :end_datetime)
     cond do
-      not is_nil(start_dt) and not is_nil(end_dt) ->
+      not is_nil(get_field(changeset, :start_datetime)) and not is_nil(get_field(changeset, :end_datetime)) ->
         if DateTime.compare(start_dt, end_dt) == :gt do
           add_error(changeset, :start_datetime, "greater than end datetime")
         else
