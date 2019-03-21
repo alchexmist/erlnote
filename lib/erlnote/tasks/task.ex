@@ -57,7 +57,7 @@ defmodule Erlnote.Tasks.Task do
     cond do
       not is_nil(start_dt) and not is_nil(end_dt) ->
         if DateTime.compare(start_dt, end_dt) == :gt do
-          add_error(changeset, :start_datetime, "greatest than end datetime")
+          add_error(changeset, :start_datetime, "greater than end datetime")
         else
           changeset
         end
