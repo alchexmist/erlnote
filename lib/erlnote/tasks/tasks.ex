@@ -133,7 +133,18 @@ defmodule Erlnote.Tasks do
 
   def add_task_to_tasklist(user_id, tasklist_id, task)
     when is_integer(user_id) and is_integer(tasklist_id) and is_map(task) do
-      :ok #Falta implementación.
+      #Falta implementar el changeset para crear Task.
+      case can_write?(user_id, tasklist_id) do
+        true ->
+          #Crear la tarea con el changeset desde el map task, usando build_assoc.
+          #Insertar la tarea en la lista de tareas.
+          get_tasklist(tasklist_id)
+          |> build_assoc(:tasks)
+          |> Task.create_changeset(task)
+          |> Repo.insert()
+        _ -> {:error, "Permission denied."}
+      end
+
   end
 
   @doc """
@@ -179,7 +190,7 @@ defmodule Erlnote.Tasks do
   """
   def create_task(attrs \\ %{}) do
     %Task{}
-    |> Task.changeset(attrs)
+    |> Task.create_changeset(attrs)
     |> Repo.insert()
   end
 
@@ -197,7 +208,7 @@ defmodule Erlnote.Tasks do
   """
   def update_task(%Task{} = task, attrs) do
     task
-    |> Task.changeset(attrs)
+    |> Task.update_changeset(attrs)
     |> Repo.update()
   end
 
@@ -227,6 +238,6 @@ defmodule Erlnote.Tasks do
 
   """
   def change_task(%Task{} = task) do
-    Task.changeset(task, %{})
+    Task.update_changeset(task, %{})
   end
 end

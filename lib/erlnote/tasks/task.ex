@@ -4,6 +4,11 @@ defmodule Erlnote.Tasks.Task do
 
   alias Erlnote.Tasks.Tasklist
 
+  @task_state  ~w[INPROGRESS, FINISHED]
+  @task_priority  ~w[LOW, NORMAL, HIGH]
+  @max_len_name  255
+  @min_len_name 1
+
   schema "tasks" do
     field :description, :string
     field :end_datetime, :utc_datetime
@@ -16,10 +21,49 @@ defmodule Erlnote.Tasks.Task do
     timestamps(type: :utc_datetime)
   end
 
+  
+
   @doc false
-  def changeset(task, attrs) do
+  def update_changeset(task, attrs) do
     task
     |> cast(attrs, [:state, :description, :start_datetime, :end_datetime, :priority, :name])
-    |> validate_required([:state, :description, :start_datetime, :end_datetime, :priority, :name])
+    |> validate_length(:name, min: @min_len_name, max: @max_len_name)
+    |> validate_inclusion(:state, @task_state)
+    |> validate_inclusion(:priority, @task_priority)
+    |> validate_end_date_gt_start_date()
   end
+
+  @doc false
+  def create_changeset(task, attrs) do
+    task
+    |> update_changeset(attrs)
+    |> validate_required([:state, :priority, :name])
+  end
+
+  defp validate_end_date_gt_start_date(changeset) do
+    case changeset do
+      %Ecto.Changeset{valid?: true, changes: %{start_datetime: start_dt}} ->
+        start_date_gt_end_date(changeset)
+      %Ecto.Changeset{valid?: true, changes: %{end_datetime: end_dt}} ->
+        start_date_gt_end_date(changeset)
+      _ ->
+        changeset
+    end  
+  end
+
+  defp start_date_gt_end_date(changeset) do
+    start_dt = get_field(changeset, :start_datetime)
+    end_dt = get_field(changeset, :end_datetime)
+    cond do
+      not is_nil(start_dt) and not is_nil(end_dt) ->
+        if DateTime.compare(start_dt, end_dt) == :gt do
+          add_error(changeset, :start_datetime, "greatest than end datetime")
+        else
+          changeset
+        end
+      true ->
+        changeset
+    end
+  end
+
 end
