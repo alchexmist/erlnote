@@ -8,7 +8,6 @@ defmodule Erlnote.Tasks do
   alias Erlnote.Repo
 
   alias Erlnote.Tasks.{Tasklist, TasklistUser, TasklistTag, Task}
-  alias Erlnote.Accounts.User
   alias Erlnote.Accounts
 
   def create_tasklist(user_id) when is_integer(user_id) do
@@ -131,9 +130,52 @@ defmodule Erlnote.Tasks do
     Kernel.elem(can_read_or_write?(user_id, tasklist_id), 0)
   end
 
+  def list_tasks_from_tasklist(tasklist_id) when is_integer(tasklist_id) do
+    case tl = get_tasklist(tasklist_id) do
+      nil -> {:error, "Tasklist ID not found."}
+      _ ->
+        (tl |> Repo.preload(:tasks)).tasks
+    end
+  end
+
+  def get_task_from_tasklist(user_id, tasklist_id, task_id) do
+    if can_read?(user_id, tasklist_id) do
+      tl = (get_tasklist(tasklist_id) |> Repo.preload(:tasks))
+      case q = ((from r in assoc(tl, :tasks), where: r.id == ^task_id) |> Repo.one) do
+        nil -> {:error, "Task not found."}
+        _ -> q
+      end
+    else
+      {:error, "Permission denied (read)."}
+    end
+  end
+
+  # changes: Es un map que debe incluir una clave con el id de la tarea.
+  # Tasks.update_task_in_tasklist(1, 5, %{id: 1, name: "Tarea número 1"})
+  def update_task_in_tasklist(user_id, tasklist_id, changes) do
+    if can_write?(user_id, tasklist_id) and Map.has_key?(changes, :id) do
+      case t = get_task_from_tasklist(user_id, tasklist_id, changes.id) do
+        {:error, _ } -> t
+        _ -> t |> Task.update_changeset(changes) |> Repo.update
+      end
+    else
+      {:error, "Permission denied (write) or Task ID not found (changes map)."}
+    end  
+  end
+
+  def delete_task_from_tasklist(user_id, tasklist_id, task_id) do
+    if can_write?(user_id, tasklist_id) do
+      case t = get_task_from_tasklist(user_id, tasklist_id, task_id) do
+        {:error, _ } -> t
+        _ -> t |> Repo.delete
+      end
+    else
+      {:error, "Permission denied (write)."}
+    end
+  end
+
   def add_task_to_tasklist(user_id, tasklist_id, task)
     when is_integer(user_id) and is_integer(tasklist_id) and is_map(task) do
-      #Falta implementar el changeset para crear Task.
       case can_write?(user_id, tasklist_id) do
         true ->
           #Crear la tarea con el changeset desde el map task, usando build_assoc.
@@ -147,97 +189,4 @@ defmodule Erlnote.Tasks do
 
   end
 
-  @doc """
-  Returns the list of tasks.
-
-  ## Examples
-
-      iex> list_tasks()
-      [%Task{}, ...]
-
-  """
-  def list_tasks do
-    Repo.all(Task)
-  end
-
-  @doc """
-  Gets a single task.
-
-  Raises `Ecto.NoResultsError` if the Task does not exist.
-
-  ## Examples
-
-      iex> get_task!(123)
-      %Task{}
-
-      iex> get_task!(456)
-      ** (Ecto.NoResultsError)
-
-  """
-  def get_task!(id), do: Repo.get!(Task, id)
-
-  @doc """
-  Creates a task.
-
-  ## Examples
-
-      iex> create_task(%{field: value})
-      {:ok, %Task{}}
-
-      iex> create_task(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def create_task(attrs \\ %{}) do
-    %Task{}
-    |> Task.create_changeset(attrs)
-    |> Repo.insert()
-  end
-
-  @doc """
-  Updates a task.
-
-  ## Examples
-
-      iex> update_task(task, %{field: new_value})
-      {:ok, %Task{}}
-
-      iex> update_task(task, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def update_task(%Task{} = task, attrs) do
-    task
-    |> Task.update_changeset(attrs)
-    |> Repo.update()
-  end
-
-  @doc """
-  Deletes a Task.
-
-  ## Examples
-
-      iex> delete_task(task)
-      {:ok, %Task{}}
-
-      iex> delete_task(task)
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def delete_task(%Task{} = task) do
-    Repo.delete(task)
-  end
-
-  @doc """
-  Returns an `%Ecto.Changeset{}` for tracking task changes.
-
-  ## Examples
-
-      iex> change_task(task)
-      %Ecto.Changeset{source: %Task{}}
-
-  """
-  def change_task(%Task{} = task) do
-    Task.update_changeset(task, %{})
-  end
 end
