@@ -24,18 +24,34 @@ defmodule Erlnote.Tags do
   @doc """
   Gets a single tag.
 
-  Raises `Ecto.NoResultsError` if the Tag does not exist.
+  Returns nil if the Tag does not exist.
 
   ## Examples
 
-      iex> get_tag!(123)
+      iex> get_tag(123)
       %Tag{}
 
-      iex> get_tag!(456)
-      ** (Ecto.NoResultsError)
+      iex> get_tag(456)
+      nil
 
   """
-  def get_tag!(id), do: Repo.get!(Tag, id)
+  def get_tag(id) when is_integer(id), do: Repo.get(Tag, id)
+
+  @doc """
+  Gets a single tag.
+
+  Returns nil if the Tag does not exist.
+
+  ## Examples
+
+      iex> get_tag_by_name("abc")
+      %Tag{}
+
+      iex> get_tag_by_name("zsh")
+      nil
+
+  """
+  def get_tag_by_name(tag_name) when is_binary(tag_name), do: Repo.get_by(Tag, name: tag_name)
 
   @doc """
   Creates a tag.
