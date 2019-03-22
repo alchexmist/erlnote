@@ -101,8 +101,17 @@ defmodule Erlnote.Tags do
       {:error, %Ecto.Changeset{}}
 
   """
-  def delete_tag(%Tag{} = tag) do
-    Repo.delete(tag)
+  def delete_tag(tag_name) when is_binary(tag_name) do
+    case t = get_tag_by_name(tag_name) do
+      nil -> {:error, "Tag name not found."}
+      _ ->
+        t = (t |> Repo.preload([:notepads, :notes, :tasklists]))
+        if length(t.notepads) > 0 or length(t.notes) > 0 or length(t.tasklists) > 0 do
+          {:error, "Tag in use."}
+        else
+          Repo.delete(t)
+        end
+    end
   end
 
   @doc """
