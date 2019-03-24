@@ -9,6 +9,8 @@ defmodule Erlnote.Tasks do
 
   alias Erlnote.Tasks.{Tasklist, TasklistUser, TasklistTag, Task}
   alias Erlnote.Accounts
+  alias Erlnote.Tags
+  alias Erlnote.Tags.Tag
 
   def create_tasklist(user_id) when is_integer(user_id) do
     case user = Accounts.get_user_by_id(user_id) do
@@ -187,6 +189,49 @@ defmodule Erlnote.Tasks do
         _ -> {:error, "Permission denied."}
       end
 
+  end
+
+  def get_tags_from_tasklist(tasklist_id) when is_integer(tasklist_id) do
+    tl = (get_tasklist(tasklist_id) |> Repo.preload(:tags))
+    case tl do
+      nil -> []
+      _ -> tl.tags
+    end
+  end
+
+  def link_tag_to_tasklist(tasklist_id, user_id, tag_name)
+    when is_integer(tasklist_id) and is_integer(user_id) and is_binary(tag_name) do
+      
+    user = Accounts.get_user_by_id(user_id)
+    tasklist = (get_tasklist(tasklist_id) |> Repo.preload(:tags))
+    cond do
+      is_nil(user) or is_nil(tasklist) or not can_write?(user_id, tasklist_id) ->
+        {:error, "user ID not found or tasklist ID not found or disabled write permission."}
+      #(tasklist |> Repo.preload(:user)).user.id == user_id -> {:ok, "linked"}
+      true ->
+        Process.put(:target_tag, Repo.one(from t in tasklist.tags, where: t.name == ^tag_name))
+        contains_tag? = not is_nil(Process.get(:target_tag))
+        if not contains_tag? do
+          if Tags.get_tag_by_name(tag_name) == nil do
+            {_, target_tag} = Tags.create_tag(%{name: tag_name})
+            Process.put(:target_tag, target_tag)
+          end
+          case target_tag = Process.get(:target_tag) do
+            %Tag{} ->
+              Process.put(:result,
+                          Repo.insert(
+                            TasklistTag.changeset(%TasklistTag{}, %{tasklist_id: tasklist.id, tag_id: target_tag.id})
+                          )
+              )
+              # Return {:ok, _} o {:error, changeset}
+              _ -> Process.put(:result, {:error, "Unlinked tag - tasklist."})
+          end
+        else
+          Process.put(:result, {:ok, "linked"})
+        end
+        Process.delete(:target_tag)
+        Process.delete(:result)
+    end
   end
 
 end
