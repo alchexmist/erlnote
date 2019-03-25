@@ -54,21 +54,24 @@ defmodule Erlnote.Tags do
   def get_tag_by_name(tag_name) when is_binary(tag_name), do: Repo.get_by(Tag, name: tag_name)
 
   @doc """
-  Creates a tag.
+  Creates a tag (if not exist).
 
   ## Examples
 
-      iex> create_tag(%{field: value})
+      iex> create_tag(new_tag_name)
       {:ok, %Tag{}}
 
-      iex> create_tag(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
   """
-  def create_tag(attrs \\ %{}) do
-    %Tag{}
-    |> Tag.changeset(attrs)
-    |> Repo.insert()
+  def create_tag(tag_name) when is_binary(tag_name) do
+    case t = Repo.one(from r in Tag, where: r.name == ^tag_name) do
+      %Tag{} ->
+        IO.inspect t
+        {:ok, t}
+      _ ->
+        %Tag{}
+        |> Tag.changeset(%{name: tag_name})
+        |> Repo.insert()
+    end
   end
 
   @doc """
