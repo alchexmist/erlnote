@@ -65,7 +65,6 @@ defmodule Erlnote.Tags do
   def create_tag(tag_name) when is_binary(tag_name) do
     case t = Repo.one(from r in Tag, where: r.name == ^tag_name) do
       %Tag{} ->
-        IO.inspect t
         {:ok, t}
       _ ->
         %Tag{}
