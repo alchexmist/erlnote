@@ -3,10 +3,13 @@ defmodule Erlnote.Tags do
   The Tags context.
   """
 
+  import Ecto
   import Ecto.Query, warn: false
   alias Erlnote.Repo
 
   alias Erlnote.Tags.Tag
+  alias Erlnote.Notes.{NoteTag, NotepadTag}
+  alias Erlnote.Tasks.TasklistTag
 
   @doc """
   Returns the list of tags.
@@ -91,6 +94,13 @@ defmodule Erlnote.Tags do
     |> Repo.update()
   end
 
+  defp count_tag_assoc_records(%Tag{} = t, assoc_name) when is_atom(assoc_name) do
+    case assoc_name in [:notepads, :notes, :tasklists] do
+      true -> Repo.preload(t, assoc_name) |> assoc(assoc_name) |> Repo.aggregate(:count, :id)
+      _ -> 0
+    end
+  end
+
   @doc """
   Deletes a Tag.
 
@@ -99,20 +109,57 @@ defmodule Erlnote.Tags do
       iex> delete_tag(tag)
       {:ok, %Tag{}}
 
+      iex> delete_tag(tag_not_found)
+      {:error, "Tag not found."}
+
+      iex> delete_tag(tag_in_use)
+      {:error, "Tag in use."}
+
       iex> delete_tag(tag)
       {:error, %Ecto.Changeset{}}
 
   """
   def delete_tag(tag_name) when is_binary(tag_name) do
     case t = get_tag_by_name(tag_name) do
-      nil -> {:error, "Tag name not found."}
+      nil -> {:error, "Tag not found."}
       _ ->
-        t = (t |> Repo.preload([:notepads, :notes, :tasklists]))
-        if length(t.notepads) > 0 or length(t.notes) > 0 or length(t.tasklists) > 0 do
+        if(
+          count_tag_assoc_records(t, :notepads) > 0 or
+          count_tag_assoc_records(t, :notes) > 0 or
+          count_tag_assoc_records(t, :tasklists) > 0
+        ) do
           {:error, "Tag in use."}
         else
           Repo.delete(t)
         end
+    end
+  end
+
+  defp delete_tag_assoc(%Tag{} = t, assoc_name) when is_atom(assoc_name) do
+    q = case assoc_name do
+      :notepads ->
+        from nt in NotepadTag
+      :notes ->
+        from nt in NoteTag
+      :tasklists ->
+        from tt in TasklistTag
+      _ -> nil
+    end
+
+    case q do
+      nil -> :error
+      _ -> (from r in q, where: r.tag_id == ^t.id) |> Repo.delete_all
+    end
+  end
+
+  def force_delete_tag(tag_name) when is_binary(tag_name) do
+    case t = get_tag_by_name(tag_name) do
+      nil -> :ok
+      _ ->
+        delete_tag_assoc(t, :notepads)
+        delete_tag_assoc(t, :notes)
+        delete_tag_assoc(t, :tasklists)
+        delete_tag(t.name)
     end
   end
 
