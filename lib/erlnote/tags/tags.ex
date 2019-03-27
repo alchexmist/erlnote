@@ -38,7 +38,9 @@ defmodule Erlnote.Tags do
       nil
 
   """
-  def get_tag(id) when is_integer(id), do: Repo.get(Tag, id)
+  def get_tag(id) when is_integer(id) do
+    Repo.get(Tag, id)
+  end
 
   @doc """
   Gets a single tag.
@@ -54,10 +56,12 @@ defmodule Erlnote.Tags do
       nil
 
   """
-  def get_tag_by_name(tag_name) when is_binary(tag_name), do: Repo.get_by(Tag, name: tag_name)
+  def get_tag_by_name(tag_name) when is_binary(tag_name) do
+    Repo.get_by(Tag, name: tag_name)
+  end
 
   @doc """
-  Creates a tag (if not exist).
+  Creates a tag (if the Tag does not exist).
 
   ## Examples
 
@@ -94,7 +98,7 @@ defmodule Erlnote.Tags do
     |> Repo.update()
   end
 
-  def count_tag_assoc_records(%Tag{} = t, assoc_name) when is_atom(assoc_name) do
+  defp count_tag_assoc_records(%Tag{} = t, assoc_name) when is_atom(assoc_name) do
     case assoc_name in [:notepads, :notes, :tasklists] do
       # true -> Repo.preload(t, assoc_name) |> assoc(assoc_name) |> Repo.aggregate(:count, :id)
       true -> assoc(t, assoc_name) |> Repo.aggregate(:count, :id)
@@ -140,18 +144,29 @@ defmodule Erlnote.Tags do
   end
 
   defp delete_tag_assoc(%Tag{} = t, assoc_name) when is_atom(assoc_name) do
-    {q, tag} = case assoc_name do
-      :notepads ->
-        {(from nt in NotepadTag), (t |> Repo.preload(:notepads))}
-      :notes ->
-        {(from nt in NoteTag), (t |> Repo.preload(:notes))}
-      :tasklists ->
-        {(from tt in TasklistTag), (t |> Repo.preload(:tasklists))}
-      _ -> {:error, t}
+    # {q, tag} = case assoc_name do
+    #   :notepads ->
+    #     {(from nt in NotepadTag), (t |> Repo.preload(:notepads))}
+    #   :notes ->
+    #     {(from nt in NoteTag), (t |> Repo.preload(:notes))}
+    #   :tasklists ->
+    #     {(from tt in TasklistTag), (t |> Repo.preload(:tasklists))}
+    #   _ -> {:error, t}
+    # end
+
+    # case {q, tag} do
+    #   {:error, _} -> q
+    #   _ -> (from r in q, where: r.tag_id == ^t.id) |> Repo.delete_all
+    # end
+    q = case assoc_name do
+      :notepads -> (from nt in NotepadTag)
+      :notes -> (from nt in NoteTag)
+      :tasklists -> (from tt in TasklistTag)
+      _ -> :error
     end
 
-    case {q, tag} do
-      {:error, _} -> q
+    case q do
+      :error -> q
       _ -> (from r in q, where: r.tag_id == ^t.id) |> Repo.delete_all
     end
   end
