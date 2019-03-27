@@ -226,4 +226,27 @@ defmodule Erlnote.Tasks do
     end
   end
 
+  def remove_tag_from_tasklist(tasklist_id, user_id, tag_name)
+    when is_integer(tasklist_id) and is_integer(user_id) and is_binary(tag_name) do
+    
+      with(
+        tasklist when not is_nil(tasklist) <- (get_tasklist(tasklist_id) |> Repo.preload(:tags)),
+        true <- can_write?(user_id, tasklist_id)
+      ) do
+        
+        case t = Repo.one(from r in assoc(tasklist, :tags), where: r.name == ^tag_name) do
+          nil -> :ok
+          _ ->
+            %{
+              remove_tag_from_tasklist: ((from x in TasklistTag, where: x.tag_id == ^t.id, where: x.tasklist_id == ^tasklist_id) |> Repo.delete_all),
+              delete_tag: Tags.delete_tag(tag_name)
+            }
+        end
+      else
+        false -> {:error, "Write permission: Disabled."}
+        _ -> {:error, "Tasklist ID not found."}
+      end
+
+  end
+
 end
