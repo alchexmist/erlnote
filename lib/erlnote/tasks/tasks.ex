@@ -192,11 +192,12 @@ defmodule Erlnote.Tasks do
   end
 
   def get_tags_from_tasklist(tasklist_id) when is_integer(tasklist_id) do
-    tl = (get_tasklist(tasklist_id) |> Repo.preload(:tags))
-    case tl do
-      nil -> []
-      _ -> tl.tags
-    end
+    # tl = (get_tasklist(tasklist_id) |> Repo.preload(:tags))
+    # case tl do
+    #   nil -> []
+    #   _ -> tl.tags
+    # end
+    Repo.all(from r in (get_tasklist(tasklist_id) |> Repo.preload(:tags) |> assoc(:tags)))
   end
 
   def link_tag_to_tasklist(tasklist_id, user_id, tag_name)
