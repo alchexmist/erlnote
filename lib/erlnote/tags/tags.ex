@@ -136,18 +136,18 @@ defmodule Erlnote.Tags do
   end
 
   defp delete_tag_assoc(%Tag{} = t, assoc_name) when is_atom(assoc_name) do
-    q = case assoc_name do
+    {q, tag} = case assoc_name do
       :notepads ->
-        from nt in NotepadTag
+        {(from nt in NotepadTag), (t |> Repo.preload(:notepads))}
       :notes ->
-        from nt in NoteTag
+        {(from nt in NoteTag), (t |> Repo.preload(:notes))}
       :tasklists ->
-        from tt in TasklistTag
-      _ -> nil
+        {(from tt in TasklistTag), (t |> Repo.preload(:tasklists))}
+      _ -> {:error, t}
     end
 
-    case q do
-      nil -> :error
+    case {q, tag} do
+      {:error, _} -> q
       _ -> (from r in q, where: r.tag_id == ^t.id) |> Repo.delete_all
     end
   end
@@ -156,10 +156,12 @@ defmodule Erlnote.Tags do
     case t = get_tag_by_name(tag_name) do
       nil -> :ok
       _ ->
-        delete_tag_assoc(t, :notepads)
-        delete_tag_assoc(t, :notes)
-        delete_tag_assoc(t, :tasklists)
-        delete_tag(t.name)
+        %{
+          delete_tag_assoc_notepads: delete_tag_assoc(t, :notepads),
+          delete_tag_assoc_notes: delete_tag_assoc(t, :notes),
+          delete_tag_assoc_tasklists: delete_tag_assoc(t, :tasklists),
+          delete_tag: Repo.delete(t)
+        }
     end
   end
 
