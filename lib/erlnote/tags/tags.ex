@@ -94,9 +94,10 @@ defmodule Erlnote.Tags do
     |> Repo.update()
   end
 
-  defp count_tag_assoc_records(%Tag{} = t, assoc_name) when is_atom(assoc_name) do
+  def count_tag_assoc_records(%Tag{} = t, assoc_name) when is_atom(assoc_name) do
     case assoc_name in [:notepads, :notes, :tasklists] do
-      true -> Repo.preload(t, assoc_name) |> assoc(assoc_name) |> Repo.aggregate(:count, :id)
+      # true -> Repo.preload(t, assoc_name) |> assoc(assoc_name) |> Repo.aggregate(:count, :id)
+      true -> assoc(t, assoc_name) |> Repo.aggregate(:count, :id)
       _ -> 0
     end
   end
@@ -122,16 +123,19 @@ defmodule Erlnote.Tags do
   def delete_tag(tag_name) when is_binary(tag_name) do
     case t = get_tag_by_name(tag_name) do
       nil -> {:error, "Tag not found."}
-      _ ->
-        if(
-          count_tag_assoc_records(t, :notepads) > 0 or
-          count_tag_assoc_records(t, :notes) > 0 or
-          count_tag_assoc_records(t, :tasklists) > 0
-        ) do
-          {:error, "Tag in use."}
-        else
-          Repo.delete(t)
-        end
+      _ -> delete_tag(t)
+    end
+  end
+
+  def delete_tag(%Tag{} = tag) when is_map(tag) do
+    if(
+      count_tag_assoc_records(tag, :notepads) > 0 or
+      count_tag_assoc_records(tag, :notes) > 0 or
+      count_tag_assoc_records(tag, :tasklists) > 0
+    ) do
+      {:error, "Tag in use."}
+    else
+      Repo.delete(tag)
     end
   end
 

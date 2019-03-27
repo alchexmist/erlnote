@@ -26,6 +26,7 @@ defmodule Erlnote.Tasks do
     case user = Accounts.get_user_by_id(user_id) do
       nil -> []
       _ -> (user |> Repo.preload(:owner_tasklists)).owner_tasklists
+      # _ -> (from u in assoc(user, :owner_tasklists)) |> Repo.all
     end
   end
 
@@ -192,11 +193,6 @@ defmodule Erlnote.Tasks do
   end
 
   def get_tags_from_tasklist(tasklist_id) when is_integer(tasklist_id) do
-    # tl = (get_tasklist(tasklist_id) |> Repo.preload(:tags))
-    # case tl do
-    #   nil -> []
-    #   _ -> tl.tags
-    # end
     Repo.all(from r in (get_tasklist(tasklist_id) |> Repo.preload(:tags) |> assoc(:tags)))
   end
 
@@ -239,7 +235,7 @@ defmodule Erlnote.Tasks do
           _ ->
             %{
               remove_tag_from_tasklist: ((from x in TasklistTag, where: x.tag_id == ^t.id, where: x.tasklist_id == ^tasklist_id) |> Repo.delete_all),
-              delete_tag: Tags.delete_tag(tag_name)
+              delete_tag: Tags.delete_tag(t)
             }
         end
       else
