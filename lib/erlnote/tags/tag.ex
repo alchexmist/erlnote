@@ -14,9 +14,9 @@ defmodule Erlnote.Tags.Tag do
   
   schema "tags" do
     field :name, :string
-    many_to_many :notepads, Notepad, join_through: NotepadTag
-    many_to_many :notes, Note, join_through: NoteTag
-    many_to_many :tasklists, Tasklist, join_through: TasklistTag
+    many_to_many :notepads, Notepad, join_through: NotepadTag, on_replace: :delete
+    many_to_many :notes, Note, join_through: NoteTag, on_replace: :delete
+    many_to_many :tasklists, Tasklist, join_through: TasklistTag, on_replace: :delete
     
     timestamps(type: :utc_datetime)
   end

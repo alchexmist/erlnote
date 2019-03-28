@@ -4,17 +4,36 @@ defmodule Erlnote.Tasks do
   """
 
   import Ecto
+  import Ecto.Changeset
   import Ecto.Query, warn: false
   alias Erlnote.Repo
 
   alias Erlnote.Tasks.{Tasklist, TasklistUser, TasklistTag, Task}
   alias Erlnote.Accounts
+  alias Erlnote.Accounts.User
   alias Erlnote.Tags
   alias Erlnote.Tags.Tag
 
+  @doc """
+  Creates a tasklist. List owner == User ID.
+
+  ## Examples
+
+      iex> create_tasklist(1)
+      {:ok, %Tasklist{}}
+
+      iex> create_tasklist(-1)
+      {:error, %Ecto.Changeset{}}
+
+  """
   def create_tasklist(user_id) when is_integer(user_id) do
     case user = Accounts.get_user_by_id(user_id) do
-      nil -> {:error, "User ID not found."}
+      nil ->
+        {
+          :error,
+          change(%Tasklist{}, %{user: %User{id: user_id}})
+          |> add_error(:user, user_id |> Integer.to_string, additional: "User ID not found.")
+        }
       _ ->
         build_assoc(user, :owner_tasklists)
         |> Tasklist.create_changeset(%{title: "tasklist-" <> Ecto.UUID.generate, deleted: false})
@@ -22,6 +41,18 @@ defmodule Erlnote.Tasks do
     end
   end
 
+  @doc """
+  Returns the list of tasklists. Tasklist owner == User ID.
+
+  ## Examples
+
+      iex> list_is_owner_tasklists(1)
+      [%Tasklist{}]
+
+      iex> list_is_owner_tasklists(-1)
+      []
+
+  """
   def list_is_owner_tasklists(user_id) when is_integer(user_id) do
     case user = Accounts.get_user_by_id(user_id) do
       nil -> []
@@ -30,32 +61,103 @@ defmodule Erlnote.Tasks do
     end
   end
 
+  @doc """
+  Gets a single tasklist.
+
+  Returns nil if the tasklist does not exist.
+
+  ## Examples
+
+      iex> get_tasklist(1)
+      %Tasklist{}
+
+      iex> get_tasklist(-1)
+      nil
+
+  """
   def get_tasklist(id) when is_integer(id), do: Repo.get(Tasklist, id)
 
+  @doc """
+  Updates a tasklist.
+
+  ## Examples
+
+      iex> update_tasklist(tasklist, %{field: new_value})
+      {:ok, %Tasklist{}}
+
+      iex> update_tasklist(tasklist, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
   def update_tasklist(%Tasklist{} = tasklist, attrs) do
     tasklist
     |> Tasklist.update_changeset(attrs)
     |> Repo.update()
   end
 
+  defp get_tasklist_tags(%Tasklist{} = tl) do
+    (Repo.preload(tl, :tags)).tags
+    |> Enum.map(fn x -> x.id end)
+  end
+
+  defp delete_tasklist_tags(%Tasklist{} = tl, tag_id_list) do
+    (from tt in TasklistTag, where: tt.tag_id in ^tag_id_list, where: tt.tasklist_id == ^tl.id)
+    |> Repo.delete_all
+    Enum.map(tag_id_list, fn x -> Tags.delete_tag(Tags.get_tag(x)) end)
+  end
+
+  defp delete_tasklist(%Tasklist{} = tl) do
+    tag_list = get_tasklist_tags(tl)
+    r = Repo.delete(tl)
+    delete_tasklist_tags(tl, tag_list)
+    r
+  end
+
+  @doc """
+  Deletes a Tasklist in the name of the user with ID == user_id.
+
+  ## Examples
+
+      iex> delete_tasklist(tasklist, user_id)
+      {:ok, %Tasklist{}}
+
+      iex> delete_board(board, user_id)
+      {:error, %Ecto.Changeset{}}
+
+  """
   def delete_tasklist(%Tasklist{} = tasklist, user_id) when is_integer(user_id) do
-    case tasklist_users = Repo.preload(tasklist, :users) do
-      nil -> {:error, %Ecto.Changeset{}}
-      _ ->
-        tasklist = (tasklist |> Repo.preload(:user))
+        tasklist = (tasklist |> Repo.preload([:user, :users]))
         cond do
-          tasklist_users.users == [] and user_id == tasklist.user_id ->
-            Repo.delete(tasklist)
-          user_id == tasklist.user_id ->
+          tasklist.users == [] and user_id == tasklist.user_id -> # Tasklist without users (Owner)
+            delete_tasklist(tasklist)
+          user_id == tasklist.user_id -> # Tasklist with users (Owner)
             update_tasklist(tasklist, %{deleted: true})
           true ->
             from(r in TasklistUser, where: r.user_id == ^user_id, where: r.tasklist_id == ^tasklist.id) |> Repo.delete_all
             if Repo.all(from(u in TasklistUser, where: u.tasklist_id == ^tasklist.id)) == [] and tasklist.deleted do
-              Repo.delete(tasklist)
+              delete_tasklist(tasklist)
             end
         end
-    end
   end
+
+  # def delete_tasklist(%Tasklist{} = tasklist, user_id) when is_integer(user_id) do
+  #   case tasklist_users = Repo.preload(tasklist, :users) do
+  #     nil -> {:error, %Ecto.Changeset{}}
+  #     _ ->
+  #       tasklist = (tasklist |> Repo.preload(:user))
+  #       cond do
+  #         tasklist_users.users == [] and user_id == tasklist.user_id ->
+  #           Repo.delete(tasklist)
+  #         user_id == tasklist.user_id ->
+  #           update_tasklist(tasklist, %{deleted: true})
+  #         true ->
+  #           from(r in TasklistUser, where: r.user_id == ^user_id, where: r.tasklist_id == ^tasklist.id) |> Repo.delete_all
+  #           if Repo.all(from(u in TasklistUser, where: u.tasklist_id == ^tasklist.id)) == [] and tasklist.deleted do
+  #             Repo.delete(tasklist)
+  #           end
+  #       end
+  #   end
+  # end
 
   # Para unlink usar la función delete_tasklist.
   def link_tasklist_to_user(tasklist_id, user_id, can_read, can_write) when is_integer(tasklist_id) and is_integer(user_id) do
