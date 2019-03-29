@@ -2,6 +2,9 @@ defmodule Erlnote.Notes.Note do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @max_title_len 255
+  @min_title_len 1
+
   alias Erlnote.Accounts.User
   alias Erlnote.Notes.{Notepad, NoteUser, NoteTag}
   alias Erlnote.Tags.Tag
@@ -18,16 +21,32 @@ defmodule Erlnote.Notes.Note do
     belongs_to :user, User, on_replace: :delete
     #field :notepad_id, :id
     belongs_to :notepad, Notepad, on_replace: :delete
-    many_to_many :users, User, join_through: NoteUser
-    many_to_many :tags, Tag, join_through: NoteTag
+    many_to_many :users, User, join_through: NoteUser, on_replace: :delete
+    many_to_many :tags, Tag, join_through: NoteTag, on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end
 
   @doc false
+  def update_changeset(note, params) do
+    note
+    |> cast(params, [:deleted, :title, :body])
+    |> validate_length(:title, min: @min_title_len, max: @max_title_len)
+  end
+
+  @doc false
+  def create_changeset(note, params) do
+    note
+    |> cast(params, [:deleted])
+    |> validate_required([:deleted])
+    |> changeset(params)
+  end
+
+  @doc false
   def changeset(note, attrs) do
     note
-    |> cast(attrs, [:title, :body])
-    |> validate_required([:title, :body])
+    |> cast(attrs, [:title])
+    |> validate_required([:title])
+    |> validate_length(:title, min: @min_title_len, max: @max_title_len)
   end
 end
