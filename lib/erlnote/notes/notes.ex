@@ -8,9 +8,11 @@ defmodule Erlnote.Notes do
   import Ecto.Query, warn: false
   alias Erlnote.Repo
 
-  alias Erlnote.Notes.{Notepad, Note}
+  alias Erlnote.Notes.{Notepad, NotepadTag, Note, NoteUser, NoteTag}
   alias Erlnote.Accounts
   alias Erlnote.Accounts.User
+  alias Erlnote.Tags
+  alias Erlnote.Tags.Tag
 
   @doc """
   Creates a note. Note owner == User ID.
@@ -92,7 +94,143 @@ defmodule Erlnote.Notes do
     |> Repo.update()
   end
 
-  
+  # Para unlink usar la función delete_note.
+  def link_note_to_user(note_id, user_id, can_read, can_write) when is_integer(note_id) and is_integer(user_id) do
+    with(
+      user when not is_nil(user) <- Accounts.get_user_by_id(user_id),
+      note when not is_nil(note) <- get_note(note_id)
+    ) do
+      cond do
+        (note |> Repo.preload(:user)).user.id == user_id -> {:ok, "linked"}
+        true ->
+          Repo.insert(
+            NoteUser.changeset(%NoteUser{}, %{note_id: note.id, user_id: user.id, can_read: can_read, can_write: can_write})
+          )
+          # Return {:ok, _} o {:error, changeset}
+      end
+    else
+      nil -> {:error, "user ID or note ID not found."}
+    end
+  end
+
+  @doc false
+  defp set_note_user_permissions(user_id, note_id, pname, pvalue) do
+    case Repo.one(
+        from r in NoteUser,
+        where: r.user_id == ^user_id,
+        where: r.note_id == ^note_id
+      ) do
+        nil -> {:error, "User-Note assoc: not found."}
+        x ->
+          case pname do
+            :can_read ->
+              x
+              |> NoteUser.update_read_permission_changeset(%{note_id: note_id, user_id: user_id, can_read: pvalue})
+              |> Repo.update()
+            :can_write ->
+              x
+              |> NoteUser.update_write_permission_changeset(%{note_id: note_id, user_id: user_id, can_write: pvalue})
+              |> Repo.update()
+          end
+      end
+  end
+
+  def set_can_read_from_note(user_id, note_id, can_read)
+    when is_integer(user_id) and is_integer(note_id) and is_boolean(can_read) do
+      set_note_user_permissions(user_id, note_id, :can_read, can_read)
+  end
+
+  def set_can_write_to_note(user_id, note_id, can_write)
+    when is_integer(user_id) and is_integer(note_id) and is_boolean(can_write) do
+      set_note_user_permissions(user_id, note_id, :can_write, can_write)
+  end
+
+  defp can_read_or_write?(user_id, note_id) do
+    case n = (get_note(note_id) |> Repo.preload(:user)) do
+      nil -> {false, false}
+      _ ->
+        cond do
+          user_id == n.user.id -> {true, true}
+          true ->
+            record = Repo.one(from r in NoteUser, where: r.note_id == ^n.id, where: r.user_id == ^user_id)
+            if is_nil(record) do
+              {false, false}
+            else
+              # can_read & can_write values: true, false or nil.
+              {record.can_read == true, record.can_write == true}
+            end
+        end
+    end
+  end
+
+  def can_write?(user_id, note_id) do
+    Kernel.elem(can_read_or_write?(user_id, note_id), 1)
+  end
+
+  def can_read?(user_id, note_id) do
+    Kernel.elem(can_read_or_write?(user_id, note_id), 0)
+  end
+
+  def get_tags_from_note(note_id) when is_integer(note_id) do
+    # Repo.all(from r in (get_note(note_id) |> Repo.preload(:tags) |> assoc(:tags)))
+    Repo.all(from r in (get_note(note_id) |> assoc(:tags)))
+  end
+
+  def link_tag_to_note(note_id, user_id, tag_name)
+    when is_integer(note_id) and is_integer(user_id) and is_binary(tag_name) do
+
+    with(
+      # note when not is_nil(note) <- (get_note(note_id) |> Repo.preload(:tags)),
+      note when not is_nil(note) <- get_note(note_id),
+      true <- can_write?(user_id, note_id)
+    ) do
+      
+      cond do
+        is_nil(Repo.one(from t in assoc(note, :tags), where: t.name == ^tag_name)) ->
+          case {_, target_tag} = Tags.create_tag(tag_name) do
+            {:ok, %Tag{}} ->
+              Repo.insert(
+                          NoteTag.changeset(%NoteTag{}, %{note_id: note.id, tag_id: target_tag.id})
+              )
+              # Return {:ok, _} o {:error, changeset}
+            _ -> {:error, target_tag}
+          end
+        true -> {:ok, "linked"}
+      end
+    else
+      false -> {:error, "Write permission: Disabled."}
+      _ -> {:error, "Note ID not found."}
+    end
+  end
+
+  def remove_tag_from_note(note_id, user_id, tag_name)
+    when is_integer(note_id) and is_integer(user_id) and is_binary(tag_name) do
+    
+      with(
+        # note when not is_nil(note) <- (get_note(note_id) |> Repo.preload(:tags)),
+        note when not is_nil(note) <- get_note(note_id),
+        true <- can_write?(user_id, note_id)
+      ) do
+        
+        case t = Repo.one(from r in assoc(note, :tags), where: r.name == ^tag_name) do
+          nil -> :ok
+          _ ->
+            %{
+              remove_tag_from_note: ((from x in NoteTag, where: x.tag_id == ^t.id, where: x.note_id == ^note_id) |> Repo.delete_all),
+              delete_tag: Tags.delete_tag(t)
+            }
+        end
+      else
+        false -> {:error, "Write permission: Disabled."}
+        _ -> {:error, "Note ID not found."}
+      end
+
+  end
+
+
+
+
+
 
   @doc """
   Returns the list of notepads.

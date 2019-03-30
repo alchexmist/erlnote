@@ -7,9 +7,9 @@ defmodule Erlnote.Notes.NoteTag do
 
   schema "notes_tags" do
     #field :note_id, :id
-    belongs_to :note, Note
+    belongs_to :note, Note, on_replace: :delete
     #field :tag_id, :id
-    belongs_to :tag, Tag
+    belongs_to :tag, Tag, on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end
