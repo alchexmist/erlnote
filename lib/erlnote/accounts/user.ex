@@ -21,7 +21,7 @@ defmodule Erlnote.Accounts.User do
     has_many :notes, Note, on_replace: :delete
     has_many :owner_tasklists, Tasklist, on_replace: :delete
     many_to_many :boards, Board, join_through: BoardUser
-    many_to_many :notes_access, Note, join_through: NoteUser
+    many_to_many :collaborator_notes, Note, join_through: NoteUser
     many_to_many :tasklists, Tasklist, join_through: TasklistUser
 
     timestamps(type: :utc_datetime)

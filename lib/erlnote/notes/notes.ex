@@ -61,6 +61,25 @@ defmodule Erlnote.Notes do
   end
 
   @doc """
+  Returns the list of notes. is_collaborator? == User ID.
+
+  ## Examples
+
+      iex> list_is_collaborator_notes(1)
+      [%Note{}]
+
+      iex> list_is_collaborator_notes(-1)
+      []
+
+  """
+  def list_is_collaborator_notes(user_id) when is_integer(user_id) do
+    case user = Accounts.get_user_by_id(user_id) do
+      nil -> []
+      _ -> (from n in assoc(user, :collaborator_notes)) |> Repo.all
+    end
+  end
+
+  @doc """
   Gets a single note.
 
   Returns nil if the note does not exist.
@@ -81,6 +100,32 @@ defmodule Erlnote.Notes do
 
   ## Examples
 
+      iex> update_note(1, %{field: new_value})
+      {:ok, %Note{}}
+
+      iex> update_note(1, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+      iex> update_note(-1, %{field: new_value})
+      {:error, "Note ID not found."}
+
+  """
+  def update_note(note_id, attrs) when is_integer(note_id) and is_map(attrs) do
+    case note = get_note(note_id) do
+      %Note{} ->
+        note
+        |> Note.update_changeset(attrs)
+        |> Repo.update()
+      _ ->
+        {:error, "Note ID not found."}
+    end
+  end
+
+  @doc """
+  Updates a note.
+
+  ## Examples
+
       iex> update_note(note, %{field: new_value})
       {:ok, %Note{}}
 
@@ -88,7 +133,7 @@ defmodule Erlnote.Notes do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_note(%Note{} = note, attrs) do
+  def update_note(%Note{} = note, attrs) when is_map(note) and is_map(attrs) do
     note
     |> Note.update_changeset(attrs)
     |> Repo.update()
@@ -172,8 +217,11 @@ defmodule Erlnote.Notes do
   end
 
   def get_tags_from_note(note_id) when is_integer(note_id) do
-    # Repo.all(from r in (get_note(note_id) |> Repo.preload(:tags) |> assoc(:tags)))
-    Repo.all(from r in (get_note(note_id) |> assoc(:tags)))
+    with n when not is_nil(n) <- get_note(note_id) do
+      (from r in assoc(n, :tags)) |> Repo.all
+    else
+      nil -> []
+    end
   end
 
   def link_tag_to_note(note_id, user_id, tag_name)
