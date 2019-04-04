@@ -121,7 +121,7 @@ defmodule Erlnote.Tasks do
       iex> delete_tasklist(tasklist, user_id)
       {:ok, %Tasklist{}}
 
-      iex> delete_board(board, user_id)
+      iex> delete_tasklist(tasklist, user_id)
       {:error, %Ecto.Changeset{}}
 
   """

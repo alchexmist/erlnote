@@ -275,8 +275,50 @@ defmodule Erlnote.Notes do
 
   end
 
+  defp get_note_tags(%Note{} = n) do
+    (Repo.preload(n, :tags)).tags
+    |> Enum.map(fn x -> x.id end)
+  end
 
+  defp delete_note_tags(%Note{} = n, tag_id_list) do
+    (from nt in NoteTag, where: nt.tag_id in ^tag_id_list, where: nt.note_id == ^n.id)
+    |> Repo.delete_all
+    Enum.map(tag_id_list, fn x -> Tags.delete_tag(Tags.get_tag(x)) end)
+  end
 
+  defp delete_note(%Note{} = n) do
+    tag_list = get_note_tags(n)
+    r = Repo.delete(n)
+    delete_note_tags(n, tag_list)
+    r
+  end
+
+  @doc """
+  Deletes a Note in the name of the user with ID == user_id.
+
+  ## Examples
+
+      iex> delete_note(note, user_id)
+      {:ok, %Note{}}
+
+      iex> delete_note(note, user_id)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_note(%Note{} = note, user_id) when is_integer(user_id) do
+    note = (note |> Repo.preload([:user, :users]))
+    cond do
+      note.users == [] and user_id == note.user_id -> # Note without users (Owner)
+        delete_note(note)
+      user_id == note.user_id -> # Note with users (Owner)
+        update_note(note, %{deleted: true})
+      true ->
+        from(r in NoteUser, where: r.user_id == ^user_id, where: r.note_id == ^note.id) |> Repo.delete_all
+        if Repo.all(from(u in NoteUser, where: u.note_id == ^note.id)) == [] and note.deleted do
+          delete_note(note)
+        end
+    end
+  end
 
 
 
