@@ -333,6 +333,16 @@ defmodule Erlnote.Notes do
     Repo.all(Notepad)
   end
 
+  def list_notepads(user_id) do
+    with(
+      user when not is_nil(user) <- (Accounts.get_user_by_id(user_id) |> Repo.preload(:notepads))
+    ) do
+      user.notepads
+    else
+      []
+    end
+  end
+
   @doc """
   Gets a single notepad.
 
@@ -393,22 +403,6 @@ defmodule Erlnote.Notes do
     |> Notepad.changeset(attrs)
     |> Repo.update()
   end
-
-  # @doc """
-  # Deletes a Notepad.
-
-  # ## Examples
-
-  #     iex> delete_notepad(notepad)
-  #     {:ok, %Notepad{}}
-
-  #     iex> delete_notepad(notepad)
-  #     {:error, %Ecto.Changeset{}}
-
-  # """
-  # def delete_notepad(%Notepad{} = notepad) do
-  #   Repo.delete(notepad)
-  # end
 
   @doc """
   Returns an `%Ecto.Changeset{}` for tracking notepad changes.
