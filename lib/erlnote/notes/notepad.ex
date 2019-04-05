@@ -2,6 +2,9 @@ defmodule Erlnote.Notes.Notepad do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @max_name_len 255
+  @min_name_len 1
+
   alias Erlnote.Accounts.User
   alias Erlnote.Notes.{Note, NotepadTag}
   alias Erlnote.Tags.Tag
@@ -25,6 +28,7 @@ defmodule Erlnote.Notes.Notepad do
     notepad
     |> cast(attrs, [:name])
     |> validate_required([:name])
+    |> validate_length(:name, min: @min_name_len, max: @max_name_len)
     |> unique_constraint(:name)
   end
 end
