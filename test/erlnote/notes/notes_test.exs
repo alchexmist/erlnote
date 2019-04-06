@@ -58,14 +58,19 @@ defmodule Erlnote.NotesTest do
       [target_user | _] = users 
       owner_notes = Notes.list_is_owner_notes(target_user.id)
 
-      r = for n <- notes, on <- owner_notes do
-        cond do
-          n.id == on.id and n.user == on.user -> true
-          true -> false
+      r = try do
+        for n <- notes, on <- owner_notes do
+          if n.id == on.id and n.user == on.user do
+            throw(:found)
+          else
+            false
+          end
         end
+      catch
+        :found -> true
       end
 
-      assert Enum.member?(r, true)
+      assert r == true
     end
 
     # test "get_notepad!/1 returns the notepad with given id" do
