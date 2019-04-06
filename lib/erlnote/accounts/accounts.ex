@@ -8,6 +8,22 @@ defmodule Erlnote.Accounts do
 
   alias Erlnote.Accounts.{User, Credential}
 
+    @doc """
+  Returns the User ID.
+
+  ## Examples
+
+      iex> get_id(user)
+      1
+
+      iex> get_id(bad_user)
+      nil
+
+  """
+  def get_id(%User{} = u) do
+    u.id
+  end
+
   @doc """
   Returns the list of users.
 

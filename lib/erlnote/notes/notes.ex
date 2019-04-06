@@ -15,7 +15,7 @@ defmodule Erlnote.Notes do
   alias Erlnote.Tags.Tag
 
   @doc """
-  Creates a note. Note owner == User ID.
+  Creates a empty note. Note owner == User ID.
 
   ## Examples
 
