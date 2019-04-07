@@ -8,6 +8,9 @@ defmodule Erlnote.NotesTest do
     alias Erlnote.Accounts
     alias Erlnote.Accounts.User
 
+    @note_title_min_len 1
+    @note_title_max_len 255
+
     @users [
       %{
         name: "User 1",
@@ -53,30 +56,70 @@ defmodule Erlnote.NotesTest do
       {users, notes}
     end
 
+    defp contains_note?(_, [], acc), do: acc
+    defp contains_note?(%Note{} = note, note_list, acc) when is_list(note_list) do
+      [h | t] = note_list
+      r = if h.id == note.id and h.user == note.user do
+        [true | acc]
+      else
+        acc
+      end
+      contains_note?(note, t, r)
+    end
+    defp contains_note?(%Note{} = note, note_list) when is_list(note_list) do
+      contains_note?(note, note_list, [])
+    end
+
+    test "create_note/1 with valid data creates a note" do
+      {users, _} = note_fixture()
+      [target_user | _] = users
+      assert {:ok, %Note{} = note} = Notes.create_note(target_user.id)
+      assert note.id != nil and note.id > 0
+      note = (note |> Repo.preload(:user))
+      assert note.user.id == target_user.id
+      assert note.deleted == false
+      title_len = String.length(note.title)
+      assert note.title != nil and title_len >= @note_title_min_len and title_len <= @note_title_max_len
+    end
+
+    test "create_note/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Notes.create_note(-1)
+    end
+
     test "list_is_owner_notes/1 returns all user's notes" do
       {users, notes} = note_fixture()
       [target_user | _] = users 
       owner_notes = Notes.list_is_owner_notes(target_user.id)
 
-      r = try do
-        for n <- notes, on <- owner_notes do
-          if n.id == on.id and n.user == on.user do
-            throw(:found)
-          else
-            false
-          end
-        end
-      catch
-        :found -> true
+      r = for on <- owner_notes do
+        contains_note?(on, notes)
       end
+      |> List.flatten
+      |> Enum.count(fn x -> x == true end)
+      # r = try do
+      #   for n <- notes, on <- owner_notes do
+      #     if n.id == on.id and n.user == on.user do
+      #       throw(:found)
+      #     else
+      #       false
+      #     end
+      #   end
+      # catch
+      #   :found -> true
+      # end
 
-      assert r == true
+      assert r == 1
     end
 
-    # test "get_notepad!/1 returns the notepad with given id" do
-    #   notepad = notepad_fixture()
-    #   assert Notes.get_notepad!(notepad.id) == notepad
-    # end
+    test "list_is_owner_notes/1 with invalid data returns empty list" do
+      assert Notes.list_is_owner_notes(-1) == []
+    end
+
+    test "get_note/1 returns the note with given id" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      assert Notes.get_note(target_note.id) == target_note
+    end
 
     # test "create_notepad/1 with valid data creates a notepad" do
     #   assert {:ok, %Notepad{} = notepad} = Notes.create_notepad(@valid_attrs)
