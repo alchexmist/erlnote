@@ -10,6 +10,8 @@ defmodule Erlnote.NotesTest do
 
     @note_title_min_len 1
     @note_title_max_len 255
+    @bad_id -1
+    @valid_id 1
 
     @users [
       %{
@@ -44,9 +46,9 @@ defmodule Erlnote.NotesTest do
       }
     ]
 
-    @valid_attrs %{name: "some name"}
-    @update_attrs %{name: "some updated name"}
-    @invalid_attrs %{name: nil}
+    @valid_attrs %{title: "First note", body: "En un lugar de la Mancha..."}
+    @update_attrs %{title: "First note", body: "En un lugar de la Mancha...", deleted: true}
+    @invalid_attrs %{deleted: "kill bit"}
 
     def note_fixture(attrs \\ %{}) do
       
@@ -83,7 +85,7 @@ defmodule Erlnote.NotesTest do
     end
 
     test "create_note/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Notes.create_note(-1)
+      assert {:error, %Ecto.Changeset{}} = Notes.create_note(@bad_id)
     end
 
     test "list_is_owner_notes/1 returns all user's notes" do
@@ -119,6 +121,38 @@ defmodule Erlnote.NotesTest do
       {_, notes} = note_fixture()
       [target_note | _] = notes
       assert Notes.get_note(target_note.id) == target_note
+    end
+
+    test "get_note/1 returns nil with invalid id" do
+      assert Notes.get_note(@bad_id) == nil
+    end
+
+    test "update_note/3 with valid data updates the note" do
+      {_, notes} = note_fixture()
+      [note | _] = notes
+      saved_id = note.id
+      note = note |> Repo.preload(:user)
+      assert {:ok, %Note{} = note} = Notes.update_note(note.user.id, note.id, @update_attrs)
+      assert note.body == @update_attrs.body
+      assert note.title == @update_attrs.title
+      assert note.deleted == @update_attrs.deleted
+      assert note.id == saved_id
+    end
+
+    test "update_note/3 with invalid data returns error changeset" do
+      {_, notes} = note_fixture()
+      [note | _] = notes
+      target_note = note |> Repo.preload(:user)
+      assert {:error, %Ecto.Changeset{}} = Notes.update_note(target_note.user.id, target_note.id, @invalid_attrs)
+      assert note == Notes.get_note(note.id)
+    end
+
+    test "update_note/3 with invalid note_id returns error tuple" do
+      assert {:error, _} = Notes.update_note(@valid_id, @bad_id, @valid_attrs)
+    end
+
+    test "update_note/3 with invalid user_id returns error tuple" do
+      assert {:error, _} = Notes.update_note(@bad_id, @valid_id, @valid_attrs)
     end
 
     # test "create_notepad/1 with valid data creates a notepad" do

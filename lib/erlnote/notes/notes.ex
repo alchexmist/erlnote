@@ -42,7 +42,7 @@ defmodule Erlnote.Notes do
   end
 
   @doc """
-  Returns the list of notes. Note owner == User ID.
+  Returns the list of notes. Note owner == User ID and deleted == false.
 
   ## Examples
 
@@ -56,7 +56,8 @@ defmodule Erlnote.Notes do
   def list_is_owner_notes(user_id) when is_integer(user_id) do
     case user = Accounts.get_user_by_id(user_id) do
       nil -> []
-      _ -> (user |> Repo.preload(:notes)).notes
+      _ -> Repo.all(from n in assoc(user, :notes), where: n.deleted == false)
+      # _ -> (user |> Repo.preload(:notes)).notes
     end
   end
 
@@ -100,47 +101,55 @@ defmodule Erlnote.Notes do
 
   ## Examples
 
-      iex> update_note(1, %{field: new_value})
+      iex> update_note(1, 1, %{field: new_value})
       {:ok, %Note{}}
 
-      iex> update_note(1, %{field: bad_value})
+      iex> update_note(1, 1, %{field: bad_value})
       {:error, %Ecto.Changeset{}}
 
-      iex> update_note(-1, %{field: new_value})
-      {:error, "Note ID not found."}
+      iex> update_note(1, -1, %{field: new_value})
+      {:error, "Permission denied."}
+
+      iex> update_note(-1, 1, %{field: new_value})
+      {:error, "Permission denied."}
 
   """
-  def update_note(note_id, attrs) when is_integer(note_id) and is_map(attrs) do
-    case note = get_note(note_id) do
-      %Note{} ->
-        note
-        |> Note.update_changeset(attrs)
-        |> Repo.update()
-      _ ->
-        {:error, "Note ID not found."}
+  def update_note(user_id, note_id, attrs) when is_integer(user_id) and is_integer(note_id) and is_map(attrs) do
+    if can_write?(user_id, note_id) do
+      update_note(get_note(note_id), attrs)
+      # case note = get_note(note_id) do
+      #   %Note{} ->
+      #     note
+      #     |> Note.update_changeset(attrs)
+      #     |> Repo.update()
+      #   _ ->
+      #     {:error, "Note ID not found."}
+      # end
+    else
+      {:error, "Permission denied."}
     end
   end
 
-  @doc """
-  Updates a note.
+  # @doc """
+  # Updates a note.
 
-  ## Examples
+  # ## Examples
 
-      iex> update_note(note, %{field: new_value})
-      {:ok, %Note{}}
+  #     iex> update_note(note, %{field: new_value})
+  #     {:ok, %Note{}}
 
-      iex> update_note(note, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
+  #     iex> update_note(note, %{field: bad_value})
+  #     {:error, %Ecto.Changeset{}}
 
-  """
-  def update_note(%Note{} = note, attrs) when is_map(note) and is_map(attrs) do
+  # """
+  defp update_note(%Note{} = note, attrs) when is_map(note) and is_map(attrs) do
     note
     |> Note.update_changeset(attrs)
     |> Repo.update()
   end
 
   # Para unlink usar la función delete_note.
-  def link_note_to_user(note_id, user_id, can_read, can_write) when is_integer(note_id) and is_integer(user_id) do
+  defp link_note_to_user(note_id, user_id, can_read, can_write) when is_integer(note_id) and is_integer(user_id) do
     with(
       user when not is_nil(user) <- Accounts.get_user_by_id(user_id),
       note when not is_nil(note) <- get_note(note_id)
@@ -155,6 +164,18 @@ defmodule Erlnote.Notes do
       end
     else
       nil -> {:error, "user ID or note ID not found."}
+    end
+  end
+
+  def link_note_to_user(owner_id, note_id, user_id, can_read, can_write) when is_integer(owner_id) and is_integer(note_id) and is_integer(user_id) do
+    with(
+      n when not is_nil(n) <- Repo.preload(get_note(note_id), :user)
+    ) do
+      if n.user.id == owner_id do
+        link_note_to_user(note_id, user_id, can_read, can_write)
+      else
+        {:error, "Permission denied."}
+      end
     end
   end
 
