@@ -94,7 +94,9 @@ defmodule Erlnote.Notes do
       nil
 
   """
-  def get_note(id) when is_integer(id), do: Repo.get(Note, id)
+  def get_note(id) when is_integer(id) do
+    Repo.one(from n in Note, where: n.id == ^id and n.deleted == false)
+  end
 
   @doc """
   Updates a note.
