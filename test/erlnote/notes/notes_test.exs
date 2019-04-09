@@ -4,7 +4,7 @@ defmodule Erlnote.NotesTest do
   alias Erlnote.Notes
 
   describe "notes" do
-    alias Erlnote.Notes.Note
+    alias Erlnote.Notes.{Note, NoteUser}
     alias Erlnote.Accounts
     alias Erlnote.Accounts.User
 
@@ -113,8 +113,28 @@ defmodule Erlnote.NotesTest do
       assert r == 1
     end
 
-    test "list_is_owner_notes/1 with invalid data returns empty list" do
+    test "list_is_owner_notes/1 with invalid data returns the empty list" do
       assert Notes.list_is_owner_notes(-1) == []
+    end
+
+    test "list_is_collaborator_notes/1 with valid data returns all notes in which the user acts as a contributor" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      assert target_note.users == []
+      assert {:ok, %NoteUser{} = note_user} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, true)
+      note_list = Notes.list_is_collaborator_notes(collaborator_id)
+      assert length(note_list) == 1
+      [note | []] = note_list
+      note = note |> Repo.preload([:users])
+      assert note.id == note_user.note_id
+      assert Enum.find(note.users, [], fn x -> x.id == note_user.user_id end) != []
+    end
+
+    test "list_is_collaborator_notes/1 with invalid data returns the empty list" do
+      assert Notes.list_is_collaborator_notes(@bad_id) == []
     end
 
     test "get_note/1 returns the note with given id" do
@@ -153,6 +173,82 @@ defmodule Erlnote.NotesTest do
 
     test "update_note/3 with invalid user_id returns error tuple" do
       assert {:error, _} = Notes.update_note(@bad_id, @valid_id, @valid_attrs)
+    end
+
+    test "link_note_to_user/5 with valid data adds a collaborator on the note" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      assert target_note.users == []
+      assert {:ok, %NoteUser{} = note_user} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, true)
+      assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) != []
+      assert Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id) != nil
+    end
+
+    test "link_note_to_user/5 with valid data (write enabled/read disabled) adds a collaborator on the note (write enabled/read disabled)" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      assert target_note.users == []
+      assert {:ok, %NoteUser{} = note_user} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, false, true)
+      assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) != []
+      assert not is_nil(r = Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id))
+      assert Notes.can_write?(r.user_id, r.note_id) == true
+      assert Notes.can_read?(r.user_id, r.note_id) == false
+    end
+
+    test "link_note_to_user/5 with valid data (write disabled/read enabled) adds a collaborator on the note (write disabled/read enabled)" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      assert target_note.users == []
+      assert {:ok, %NoteUser{} = note_user} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, false)
+      assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) != []
+      assert not is_nil(r = Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id))
+      assert Notes.can_write?(r.user_id, r.note_id) == false
+      assert Notes.can_read?(r.user_id, r.note_id) == true
+    end
+
+    test "link_note_to_user/5 with invalid owner ID returns permission denied error" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      assert target_note.users == []
+      assert {:error, "Permission denied."} = Notes.link_note_to_user(@bad_id, target_note.id, collaborator_id, true, true)
+      assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) == []
+      assert Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id) == nil
+    end
+
+    test "link_note_to_user/5 with invalid note ID returns a error" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      assert target_note.users == []
+      assert {:error, "User ID or note ID not found."} = Notes.link_note_to_user(target_note.user.id, @bad_id, collaborator_id, true, true)
+      assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) == []
+      assert Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id) == nil
+    end
+
+    test "link_note_to_user/5 with invalid user ID returns a error" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = @bad_id
+
+      assert target_note.users == []
+      assert {:error, "User ID or note ID not found."} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, true)
+      assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) == []
+      assert Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id) == nil
     end
 
     # test "create_notepad/1 with valid data creates a notepad" do

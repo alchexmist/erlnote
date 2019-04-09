@@ -150,11 +150,67 @@ defmodule Erlnote.Notes do
     |> Repo.update()
   end
 
+  # # Para unlink usar la función delete_note.
+  # defp link_note_to_user(note_id, user_id, can_read, can_write) when is_integer(note_id) and is_integer(user_id) do
+  #   with(
+  #     user when not is_nil(user) <- Accounts.get_user_by_id(user_id),
+  #     note when not is_nil(note) <- get_note(note_id)
+  #   ) do
+  #     cond do
+  #       (note |> Repo.preload(:user)).user.id == user_id -> {:ok, "linked"}
+  #       true ->
+  #         Repo.insert(
+  #           NoteUser.changeset(%NoteUser{}, %{note_id: note.id, user_id: user.id, can_read: can_read, can_write: can_write})
+  #         )
+  #         # Return {:ok, _} o {:error, changeset}
+  #     end
+  #   else
+  #     nil -> {:error, "user ID or note ID not found."}
+  #   end
+  # end
+
+  # def link_note_to_user(owner_id, note_id, user_id, can_read, can_write) when is_integer(owner_id) and is_integer(note_id) and is_integer(user_id) do
+  #   with(
+  #     n when not is_nil(n) <- Repo.preload(get_note(note_id), :user)
+  #   ) do
+  #     if n.user.id == owner_id do
+  #       link_note_to_user(note_id, user_id, can_read, can_write)
+  #     else
+  #       {:error, "Permission denied."}
+  #     end
+  #   end
+  # end
+
   # Para unlink usar la función delete_note.
-  defp link_note_to_user(note_id, user_id, can_read, can_write) when is_integer(note_id) and is_integer(user_id) do
+  @doc """
+  Adds user_id as a collaborator on the note.
+
+  ## Examples
+
+      iex> link_note_to_user(owner_id, note_id, user_id, can_read, can_write)
+      {:ok, %NoteUser{}}
+
+      iex> link_note_to_user(no_owner_id, note_id, user_id, can_read, can_write)
+      {:error, "Permission denied."}
+
+      iex> link_note_to_user(owner_id, bad_note_id, user_id, can_read, can_write)
+      {:error, "User ID or note ID not found."}
+
+      iex> link_note_to_user(owner_id, note_id, bad_user_id, can_read, can_write)
+      {:error, "User ID or note ID not found."}
+
+  """
+  def link_note_to_user(owner_id, note_id, user_id, can_read, can_write)
+    when is_integer(owner_id)
+    and is_integer(note_id)
+    and is_integer(user_id)
+    and is_boolean(can_read)
+    and is_boolean(can_write) do
+
     with(
       user when not is_nil(user) <- Accounts.get_user_by_id(user_id),
-      note when not is_nil(note) <- get_note(note_id)
+      note when not is_nil(note) <- Repo.preload(get_note(note_id), :user),
+      true <- note.user.id == owner_id
     ) do
       cond do
         (note |> Repo.preload(:user)).user.id == user_id -> {:ok, "linked"}
@@ -165,19 +221,8 @@ defmodule Erlnote.Notes do
           # Return {:ok, _} o {:error, changeset}
       end
     else
-      nil -> {:error, "user ID or note ID not found."}
-    end
-  end
-
-  def link_note_to_user(owner_id, note_id, user_id, can_read, can_write) when is_integer(owner_id) and is_integer(note_id) and is_integer(user_id) do
-    with(
-      n when not is_nil(n) <- Repo.preload(get_note(note_id), :user)
-    ) do
-      if n.user.id == owner_id do
-        link_note_to_user(note_id, user_id, can_read, can_write)
-      else
-        {:error, "Permission denied."}
-      end
+      nil -> {:error, "User ID or note ID not found."}
+      false -> {:error, "Permission denied."}
     end
   end
 
