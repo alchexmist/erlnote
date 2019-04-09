@@ -251,6 +251,17 @@ defmodule Erlnote.NotesTest do
       assert Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id) == nil
     end
 
+    test "set_can_read_from_note/3 with valid data enables/disables read permission for (contributor, note)" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      assert target_note.users == []
+      assert {:ok, %NoteUser{} = note_user} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, true)
+      assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) != []
+      assert Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id) != nil
+    end
     # test "create_notepad/1 with valid data creates a notepad" do
     #   assert {:ok, %Notepad{} = notepad} = Notes.create_notepad(@valid_attrs)
     #   assert notepad.name == "some name"

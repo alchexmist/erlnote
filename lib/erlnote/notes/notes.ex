@@ -248,6 +248,21 @@ defmodule Erlnote.Notes do
       end
   end
 
+  @doc """
+  Enables/Disables read permission for a (contributor, note).
+
+  ## Examples
+
+      iex> set_can_read_from_note(user_id, note_id, boolean)
+      {:ok, %NoteUser{}}
+
+      iex> set_can_read_from_note(bad_user_id, note_id, boolean)
+      {:error, _}
+
+      iex> set_can_read_from_note(user_id, bad_note_id, boolean)
+      {:error, _}
+
+  """
   def set_can_read_from_note(user_id, note_id, can_read)
     when is_integer(user_id) and is_integer(note_id) and is_boolean(can_read) do
       set_note_user_permissions(user_id, note_id, :can_read, can_read)
