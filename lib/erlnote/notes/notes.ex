@@ -268,11 +268,27 @@ defmodule Erlnote.Notes do
       set_note_user_permissions(user_id, note_id, :can_read, can_read)
   end
 
+  @doc """
+  Enables/Disables write permission for a (contributor, note).
+
+  ## Examples
+
+      iex> set_can_write_to_note(user_id, note_id, boolean)
+      {:ok, %NoteUser{}}
+
+      iex> set_can_write_to_note(bad_user_id, note_id, boolean)
+      {:error, _}
+
+      iex> set_can_write_to_note(user_id, bad_note_id, boolean)
+      {:error, _}
+
+  """
   def set_can_write_to_note(user_id, note_id, can_write)
     when is_integer(user_id) and is_integer(note_id) and is_boolean(can_write) do
       set_note_user_permissions(user_id, note_id, :can_write, can_write)
   end
 
+  @doc false
   defp can_read_or_write?(user_id, note_id) do
     case n = (get_note(note_id) |> Repo.preload(:user)) do
       nil -> {false, false}
@@ -291,14 +307,59 @@ defmodule Erlnote.Notes do
     end
   end
 
+  @doc """
+  Checks if note can be written by the contributor.
+
+  ## Examples
+
+      iex> can_write?(user_id, note_id)
+      true
+
+      iex> can_write?(bad_user_id, note_id)
+      {false, false}
+
+      iex> can_write?(user_id, bad_note_id)
+      {false, false}
+
+  """
   def can_write?(user_id, note_id) do
     Kernel.elem(can_read_or_write?(user_id, note_id), 1)
   end
 
+  @doc """
+  Checks if note can be read by the contributor.
+
+  ## Examples
+
+      iex> can_read?(user_id, note_id)
+      true
+
+      iex> can_read?(bad_user_id, note_id)
+      {false, false}
+
+      iex> can_read?(user_id, bad_note_id)
+      {false, false}
+
+  """
   def can_read?(user_id, note_id) do
     Kernel.elem(can_read_or_write?(user_id, note_id), 0)
   end
 
+  @doc """
+  Lists all tags associated with a note.
+
+  ## Examples
+
+      iex> get_tags_from_note(note_id)
+      [%Tag{}]
+
+      iex> get_tags_from_note(note_without_tags_id)
+      []
+
+      iex> get_tags_from_note(bad_note_id)
+      []
+
+  """
   def get_tags_from_note(note_id) when is_integer(note_id) do
     with n when not is_nil(n) <- get_note(note_id) do
       (from r in assoc(n, :tags)) |> Repo.all
@@ -307,6 +368,24 @@ defmodule Erlnote.Notes do
     end
   end
 
+  @doc """
+  Creates assoc(note, tag).
+
+  ## Examples
+
+      iex> link_tag_to_note(note_id, user_id, tag_name)
+      {:ok, %NoteTag{}}
+
+      iex> link_tag_to_note(note_id, user_id, duplicated_tag_name)
+      {:ok, "linked"}
+
+      iex> link_tag_to_note(bad_note_id, user_id, tag_name)
+      {:error, "Note ID not found."}
+
+      iex> link_tag_to_note(note_id, bad_user_id, tag_name)
+      {:error, "Write permission: Disabled."}
+
+  """
   def link_tag_to_note(note_id, user_id, tag_name)
     when is_integer(note_id) and is_integer(user_id) and is_binary(tag_name) do
 

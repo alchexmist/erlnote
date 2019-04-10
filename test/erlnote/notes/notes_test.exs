@@ -4,14 +4,17 @@ defmodule Erlnote.NotesTest do
   alias Erlnote.Notes
 
   describe "notes" do
-    alias Erlnote.Notes.{Note, NoteUser}
+    alias Erlnote.Notes.{Note, NoteUser, NoteTag}
     alias Erlnote.Accounts
-    alias Erlnote.Accounts.User
+    alias Erlnote.Tags
+    alias Erlnote.Tags.Tag
 
     @note_title_min_len 1
     @note_title_max_len 255
     @bad_id -1
     @valid_id 1
+    @valid_tag_name "White hat"
+    @valid_tag_name_list ~w(white_hat black_hat blue_hat)
 
     @users [
       %{
@@ -240,7 +243,7 @@ defmodule Erlnote.NotesTest do
     end
 
     test "link_note_to_user/5 with invalid user ID returns a error" do
-      {users, notes} = note_fixture()
+      {_, notes} = note_fixture()
       [target_note | _] = notes
       target_note = Repo.preload(target_note, [:user, :users])
       collaborator_id = @bad_id
@@ -257,11 +260,200 @@ defmodule Erlnote.NotesTest do
       target_note = Repo.preload(target_note, [:user, :users])
       collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
 
-      assert target_note.users == []
-      assert {:ok, %NoteUser{} = note_user} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, true)
-      assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) != []
-      assert Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id) != nil
+      {:ok, %NoteUser{} = _} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, true)
+      assert Notes.can_read?(collaborator_id, target_note.id) == true
+      assert {:ok, %NoteUser{}} = Notes.set_can_read_from_note(collaborator_id, target_note.id, false)
+      assert Notes.can_read?(collaborator_id, target_note.id) == false
+      assert {:ok, %NoteUser{}} = Notes.set_can_read_from_note(collaborator_id, target_note.id, true)
+      assert Notes.can_read?(collaborator_id, target_note.id) == true
     end
+
+    test "set_can_read_from_note/3 with invalid contributor ID returns error" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+
+      assert {:error, _} = Notes.set_can_read_from_note(@bad_id, target_note.id, false)
+    end
+
+    test "set_can_read_from_note/3 with invalid note ID returns error" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      assert {:error, _} = Notes.set_can_read_from_note(collaborator_id, @bad_id, false)
+    end
+
+    test "set_can_write_to_note/3 with valid data enables/disables write permission for (contributor, note)" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      {:ok, %NoteUser{}} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, true)
+      assert Notes.can_write?(collaborator_id, target_note.id) == true
+      assert {:ok, %NoteUser{}} = Notes.set_can_write_to_note(collaborator_id, target_note.id, false)
+      assert Notes.can_write?(collaborator_id, target_note.id) == false
+      assert {:ok, %NoteUser{}} = Notes.set_can_write_to_note(collaborator_id, target_note.id, true)
+      assert Notes.can_write?(collaborator_id, target_note.id) == true
+    end
+
+    test "set_can_write_to_note/3 with invalid contributor ID returns error" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+
+      assert {:error, _} = Notes.set_can_write_to_note(@bad_id, target_note.id, false)
+    end
+
+    test "set_can_write_to_note/3 with invalid note ID returns error" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      assert {:error, _} = Notes.set_can_write_to_note(collaborator_id, @bad_id, false)
+    end
+
+    test "can_write?/2 always returns true (owner of the note)" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user])
+      
+      assert Notes.can_write?(target_note.user.id, target_note.id) == true
+    end
+
+    test "can_write?/2 always returns true or false (contributor of the note)" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+      collaborator_id2 = Enum.find(users, fn u -> u.id not in [target_note.user.id, collaborator_id] end).id
+
+      {:ok, %NoteUser{} = _} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, true)
+      {:ok, %NoteUser{} = _} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id2, true, false)
+
+      assert Notes.can_write?(collaborator_id, target_note.id) == true
+      assert Notes.can_write?(collaborator_id2, target_note.id) == false
+    end
+
+    test "can_write?/2 always returns false (invalid IDs)" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      assert Notes.can_write?(@bad_id, target_note.id) == false
+      assert Notes.can_write?(collaborator_id, @bad_id) == false
+    end
+
+    test "can_read?/2 always returns true (owner of the note)" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user])
+      
+      assert Notes.can_read?(target_note.user.id, target_note.id) == true
+    end
+
+    test "can_read?/2 always returns true or false (contributor of the note)" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :users])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+      collaborator_id2 = Enum.find(users, fn u -> u.id not in [target_note.user.id, collaborator_id] end).id
+
+      {:ok, %NoteUser{} = _} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, true)
+      {:ok, %NoteUser{} = _} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id2, false, true)
+
+      assert Notes.can_read?(collaborator_id, target_note.id) == true
+      assert Notes.can_read?(collaborator_id2, target_note.id) == false
+    end
+
+    test "can_read?/2 always returns false (invalid IDs)" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user])
+      collaborator_id = Enum.find(users, fn u -> u.id != target_note.user.id end).id
+
+      assert Notes.can_read?(@bad_id, target_note.id) == false
+      assert Notes.can_read?(collaborator_id, @bad_id) == false
+    end
+
+    test "link_tag_to_note/3 with valid data creates assoc(note, tag)" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :tags])
+      
+      assert target_note.tags == []
+      assert {:ok, %NoteTag{} = nt} = Notes.link_tag_to_note(target_note.id, target_note.user.id, @valid_tag_name)
+      assert nt.note_id == target_note.id
+      (%Tag{} = t) = Tags.get_tag_by_name(@valid_tag_name)
+      assert nt.tag_id == t.id
+      assert Repo.one(from r in assoc(target_note, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name) != nil
+    end
+
+    test "link_tag_to_note/3 with duplicated tag name does nothing" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :tags])
+      
+      assert target_note.tags == []
+      assert {:ok, %NoteTag{} = nt} = Notes.link_tag_to_note(target_note.id, target_note.user.id, @valid_tag_name)
+      assert {:ok, msg} = Notes.link_tag_to_note(target_note.id, target_note.user.id, @valid_tag_name)
+      assert is_binary msg
+      assert nt.note_id == target_note.id
+      (%Tag{} = t) = Tags.get_tag_by_name(@valid_tag_name)
+      assert nt.tag_id == t.id
+      assert Repo.one(from r in assoc(target_note, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name) != nil
+    end
+
+    test "link_tag_to_note/3 with invalid note ID returns error" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, :user)
+      
+      assert {:error, msg} = Notes.link_tag_to_note(@bad_id, target_note.user.id, @valid_tag_name)
+    end
+
+    test "link_tag_to_note/3 with invalid user ID returns error" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, [:user, :tags])
+      
+      assert target_note.tags == []
+      assert {:error, msg} = Notes.link_tag_to_note(target_note.id, @bad_id, @valid_tag_name)
+      assert Repo.all(from r in NoteTag, where: r.note_id == ^target_note.id and r.tag_id == ^@bad_id) == []
+    end
+    
+    test "get_tags_from_note/1 lists all the associated tags (note with tags)" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, :user)
+      [tag_name_x | tail] = @valid_tag_name_list
+      [tag_name_y | _] = tail
+
+      {:ok, %NoteTag{}} = Notes.link_tag_to_note(target_note.id, target_note.user.id, tag_name_x)
+      {:ok, %NoteTag{}} = Notes.link_tag_to_note(target_note.id, target_note.user.id, tag_name_y)
+      tag_list = Notes.get_tags_from_note(target_note.id)
+      assert length(tag_list) == 2
+      tn1 = List.first(tag_list).name
+      tn2 = List.last(tag_list).name
+      assert tag_name_x == tn1 or tag_name_x == tn2
+      assert tag_name_y == tn1 or tag_name_y == tn2
+    end
+
+    test "get_tags_from_note/1 returns empty list (note without tags)" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, :tags)
+      
+      assert target_note.tags == []
+      assert Notes.get_tags_from_note(target_note.id) == []
+    end
+
+    test "get_tags_from_note/1 with invalid note ID returns empty list" do
+      assert Notes.get_tags_from_note(@bad_id) == []
+    end
+
     # test "create_notepad/1 with valid data creates a notepad" do
     #   assert {:ok, %Notepad{} = notepad} = Notes.create_notepad(@valid_attrs)
     #   assert notepad.name == "some name"
