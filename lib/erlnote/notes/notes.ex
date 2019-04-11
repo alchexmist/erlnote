@@ -413,6 +413,27 @@ defmodule Erlnote.Notes do
     end
   end
 
+  @doc """
+  Deletes assoc(note, tag).
+
+  ## Examples
+
+      iex> remove_tag_from_note(note_id, user_id, tag_name_not_in_use_anymore)
+      %{remove_tag_from_note: {1, nil}, delete_tag: {:ok, %Tag{}}}
+
+      iex> remove_tag_from_note(note_id, user_id, tag_name_in_use_by_another_entity)
+      %{remove_tag_from_note: {1, nil}, delete_tag: {:error, msg_string}}
+
+      iex> remove_tag_from_note(note_id, user_id, nonexistent_tag_name)
+      :ok
+
+      iex> remove_tag_from_note(bad_note_id, user_id, tag_name)
+      {:error, "Note ID not found."}
+
+      iex> remove_tag_from_note(note_id, bad_user_id, tag_name)
+      {:error, "Write permission: Disabled."}
+
+  """
   def remove_tag_from_note(note_id, user_id, tag_name)
     when is_integer(note_id) and is_integer(user_id) and is_binary(tag_name) do
     
