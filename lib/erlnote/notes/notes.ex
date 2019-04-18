@@ -421,7 +421,7 @@ defmodule Erlnote.Notes do
       iex> remove_tag_from_note(note_id, user_id, tag_name_not_in_use_anymore)
       %{remove_tag_from_note: {1, nil}, delete_tag: {:ok, %Tag{}}}
 
-      iex> remove_tag_from_note(note_id, user_id, tag_name_in_use_by_another_entity)
+      iex> remove_tag_from_note(note_id, user_id, tag_name_in_use_by_other_entities)
       %{remove_tag_from_note: {1, nil}, delete_tag: {:error, msg_string}}
 
       iex> remove_tag_from_note(note_id, user_id, nonexistent_tag_name)

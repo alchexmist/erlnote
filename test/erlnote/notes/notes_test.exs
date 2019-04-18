@@ -454,6 +454,77 @@ defmodule Erlnote.NotesTest do
       assert Notes.get_tags_from_note(@bad_id) == []
     end
 
+    test "remove_tag_from_note/3 with valid data breaks assoc(note, tag)" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, :user)
+      
+      {:ok, %NoteTag{}} = Notes.link_tag_to_note(target_note.id, target_note.user.id, @valid_tag_name)
+      assert not is_nil(Enum.find(Notes.get_tags_from_note(target_note.id), fn t -> @valid_tag_name == t.name end))
+      %{remove_tag_from_note: {1, nil}, delete_tag: {:ok, %Tag{}}} = Notes.remove_tag_from_note(target_note.id, target_note.user.id, @valid_tag_name)
+      assert is_nil(Enum.find(Notes.get_tags_from_note(target_note.id), fn t -> @valid_tag_name == t.name end))
+    end
+
+    test "remove_tag_from_note/3 with valid data breaks assoc(note, tag). (tag_name_in_use_by_other_entities)" do
+      {_, notes} = note_fixture()
+      [target_note | other_notes] = notes
+      target_note = Repo.preload(target_note, :user)
+      [target_note2 | _] = other_notes
+      target_note2 = Repo.preload(target_note2, :user)
+      
+      {:ok, %NoteTag{}} = Notes.link_tag_to_note(target_note.id, target_note.user.id, @valid_tag_name)
+      {:ok, %NoteTag{}} = Notes.link_tag_to_note(target_note2.id, target_note2.user.id, @valid_tag_name)
+      assert not is_nil(Enum.find(Notes.get_tags_from_note(target_note.id), fn t -> @valid_tag_name == t.name end))
+      assert not is_nil(Enum.find(Notes.get_tags_from_note(target_note2.id), fn t -> @valid_tag_name == t.name end))
+      %{remove_tag_from_note: {1, nil}, delete_tag: {:error, _}} = Notes.remove_tag_from_note(target_note.id, target_note.user.id, @valid_tag_name)
+      assert is_nil(Enum.find(Notes.get_tags_from_note(target_note.id), fn t -> @valid_tag_name == t.name end))
+      assert not is_nil(Enum.find(Notes.get_tags_from_note(target_note2.id), fn t -> @valid_tag_name == t.name end))
+    end
+
+    test "remove_tag_from_note/3 with invalid note ID returns error" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, :user)
+      
+      assert {:error, _} = Notes.remove_tag_from_note(@bad_id, target_note.user.id, @valid_tag_name)
+    end
+
+    test "remove_tag_from_note/3 with invalid user ID returns error" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, :user)
+      
+      {:ok, %NoteTag{}} = Notes.link_tag_to_note(target_note.id, target_note.user.id, @valid_tag_name)
+      assert not is_nil(Enum.find(Notes.get_tags_from_note(target_note.id), fn t -> @valid_tag_name == t.name end))
+      {:error, _} = Notes.remove_tag_from_note(target_note.id, @bad_id, @valid_tag_name)
+    end
+
+    test "delete_note/2 with user ID == owner ID and contributors == [] deletes note" do
+      {_, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, :user)
+      
+      {:ok, %NoteTag{}} = Notes.link_tag_to_note(target_note.id, target_note.user.id, @valid_tag_name)
+
+      assert {:ok, %Note{} = n} = Notes.delete_note(target_note, target_note.user.id)
+      assert target_note.id == n.id
+      assert Repo.all(from nt in Note, where: nt.id == ^target_note.id) == []
+      assert Repo.all(from r in NoteTag, where: r.note_id == ^target_note.id) == []
+    end
+
+    test "delete_note/2 with user ID == owner ID and contributors != [] keeps the note and sets up deleted as true" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, :user)
+      contributor_id = Enum.find(users, fn c -> c.id != target_note.user.id end).id
+      
+      {:ok, %NoteUser{}} = Notes.link_note_to_user(target_note.user.id, target_note.id, contributor_id, true, true)
+
+      assert target_note.deleted == false
+      assert {:ok, %Note{}} = Notes.delete_note(target_note, target_note.user.id)
+      assert [updated_note | []] = Repo.all(from nt in Note, where: nt.id == ^target_note.id)
+      assert updated_note.deleted == true
+    end
     # test "create_notepad/1 with valid data creates a notepad" do
     #   assert {:ok, %Notepad{} = notepad} = Notes.create_notepad(@valid_attrs)
     #   assert notepad.name == "some name"
