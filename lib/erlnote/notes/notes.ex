@@ -497,8 +497,11 @@ defmodule Erlnote.Notes do
         update_note(note, %{deleted: true})
       true ->
         from(r in NoteUser, where: r.user_id == ^user_id, where: r.note_id == ^note.id) |> Repo.delete_all
+
         if Repo.all(from(u in NoteUser, where: u.note_id == ^note.id)) == [] and note.deleted do
           delete_note(note)
+        else
+          {:ok, note}
         end
     end
   end

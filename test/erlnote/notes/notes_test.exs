@@ -525,6 +525,51 @@ defmodule Erlnote.NotesTest do
       assert [updated_note | []] = Repo.all(from nt in Note, where: nt.id == ^target_note.id)
       assert updated_note.deleted == true
     end
+
+    test "delete_note/2 with user ID == contributor ID and contributors == [contributor] and owner == unowned deletes note" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, :user)
+      contributor_id = Enum.find(users, fn c -> c.id != target_note.user.id end).id
+      
+      {:ok, %NoteUser{}} = Notes.link_note_to_user(target_note.user.id, target_note.id, contributor_id, true, true)
+
+      {:ok, %Note{}} = Notes.delete_note(target_note, target_note.user.id)
+      [updated_note | []] = Repo.all(from nt in Note, where: nt.id == ^target_note.id)
+      assert updated_note.deleted == true
+      {:ok, %Note{} = nc} = Notes.delete_note(updated_note, contributor_id)
+      assert target_note.id == nc.id
+      assert Repo.all(from nt in Note, where: nt.id == ^target_note.id) == []
+      assert Repo.all(from nu in NoteUser, where: nu.note_id == ^target_note.id) == []
+    end
+
+    test "delete_note/2 with user ID == contributor ID and contributors == [contributor0, contributor1] and owner == unowned keeps the note" do
+      {users, notes} = note_fixture()
+      [target_note | _] = notes
+      target_note = Repo.preload(target_note, :user)
+      unique_users = Enum.uniq_by(users, fn user -> user.id end) |> Enum.reject(fn y -> y.id == target_note.user.id end)
+      [contributor | contributors] = unique_users
+      [contributor2 | _] = contributors
+      contributor_id = contributor.id
+      contributor_id2 = contributor2.id
+
+      # IO.inspect target_note.user.id
+      # IO.inspect contributor_id
+      # IO.inspect contributor_id2
+      {:ok, %NoteUser{}} = Notes.link_note_to_user(target_note.user.id, target_note.id, contributor_id, true, true)
+      {:ok, %NoteUser{}} = Notes.link_note_to_user(target_note.user.id, target_note.id, contributor_id2, true, true)
+      
+      {:ok, %Note{}} = Notes.delete_note(target_note, target_note.user.id)
+      #IO.inspect Repo.all(from c1 in NoteUser, where: c1.note_id == ^target_note.id)
+      [updated_note | []] = Repo.all(from nt in Note, where: nt.id == ^target_note.id)
+      assert updated_note.deleted == true
+      updated_note = Repo.preload(updated_note, :users)
+      #IO.inspect updated_note
+      {:ok, %Note{} = nc} = Notes.delete_note(updated_note, contributor_id)
+      assert target_note.id == nc.id
+      assert [hd | []] = Repo.all(from nt in Note, where: nt.id == ^target_note.id)
+      assert [hd | []] = Repo.all(from nu in NoteUser, where: nu.note_id == ^target_note.id and nu.user_id == ^contributor_id2)
+    end
     # test "create_notepad/1 with valid data creates a notepad" do
     #   assert {:ok, %Notepad{} = notepad} = Notes.create_notepad(@valid_attrs)
     #   assert notepad.name == "some name"
