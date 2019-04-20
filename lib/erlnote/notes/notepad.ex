@@ -18,7 +18,7 @@ defmodule Erlnote.Notes.Notepad do
     #field :user_id, :id
     belongs_to :user, User
     has_many :notes, Note, on_replace: :delete
-    many_to_many :tags, Tag, join_through: NotepadTag
+    many_to_many :tags, Tag, join_through: NotepadTag, on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end

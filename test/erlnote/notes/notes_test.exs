@@ -617,9 +617,9 @@ defmodule Erlnote.NotesTest do
       }
     ]
 
-    @valid_attrs %{title: "First note", body: "En un lugar de la Mancha..."}
-    @update_attrs %{title: "First note", body: "En un lugar de la Mancha...", deleted: true}
-    @invalid_attrs %{deleted: "kill bit"}
+    @valid_attrs %{name: "First notepad"}
+    @update_attrs %{name: "Y el bit que colmó el buffer es ..."}
+    @invalid_attrs %{name: String.duplicate("Alberto", 300)}
 
     def notepad_fixture(attrs \\ %{}) do
       
@@ -686,7 +686,25 @@ defmodule Erlnote.NotesTest do
       assert MapSet.subset?(old_notepads, new_notepads)
       assert MapSet.member?(new_notepads, np.id)
     end
-    
+
+    test "update_notepad/2 with valid data updates notepad" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      
+      {:ok, %Notepad{} = np} = Notes.update_notepad(target_notepad, @update_attrs)
+      assert np.id == target_notepad.id
+      assert np.name == @update_attrs.name
+      assert Repo.one(from n in Notepad, where: n.id == ^np.id) == np
+    end
+
+    test "update_notepad/2 with invalid data returns error" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      
+      assert {:error, %Ecto.Changeset{}} = Notes.update_notepad(target_notepad, @invalid_attrs)
+      assert Repo.one(from np in Notepad, where: np.id == ^target_notepad.id) == target_notepad
+    end
+
   end
   
 end
