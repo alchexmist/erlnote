@@ -520,7 +520,19 @@ defmodule Erlnote.Notes do
     Repo.all(Notepad)
   end
 
-  def list_notepads(user_id) do
+  @doc """
+  Returns the list of notepads such that User ID == Notepad owner.
+
+  ## Examples
+
+      iex> list_notepads(valid_user_id)
+      [%Notepad{}, ...]
+
+      iex> list_notepads(bad_user_id)
+      []
+
+  """
+  def list_notepads(user_id) when is_integer(user_id) do
     with(
       user when not is_nil(user) <- (Accounts.get_user_by_id(user_id) |> Repo.preload(:notepads))
     ) do

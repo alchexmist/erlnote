@@ -568,95 +568,82 @@ defmodule Erlnote.NotesTest do
       assert [hd | []] = Repo.all(from nu in NoteUser, where: nu.note_id == ^target_note.id and nu.user_id == ^contributor_id2)
       assert [] = Repo.all(from nu in NoteUser, where: nu.note_id == ^target_note.id and nu.user_id == ^contributor_id)
     end
-    # test "create_notepad/1 with valid data creates a notepad" do
-    #   assert {:ok, %Notepad{} = notepad} = Notes.create_notepad(@valid_attrs)
-    #   assert notepad.name == "some name"
-    # end
-
-    # test "create_notepad/1 with invalid data returns error changeset" do
-    #   assert {:error, %Ecto.Changeset{}} = Notes.create_notepad(@invalid_attrs)
-    # end
-
-    # test "update_notepad/2 with valid data updates the notepad" do
-    #   notepad = notepad_fixture()
-    #   assert {:ok, %Notepad{} = notepad} = Notes.update_notepad(notepad, @update_attrs)
-    #   assert notepad.name == "some updated name"
-    # end
-
-    # test "update_notepad/2 with invalid data returns error changeset" do
-    #   notepad = notepad_fixture()
-    #   assert {:error, %Ecto.Changeset{}} = Notes.update_notepad(notepad, @invalid_attrs)
-    #   assert notepad == Notes.get_notepad!(notepad.id)
-    # end
-
-    # test "delete_notepad/1 deletes the notepad" do
-    #   notepad = notepad_fixture()
-    #   assert {:ok, %Notepad{}} = Notes.delete_notepad(notepad)
-    #   assert_raise Ecto.NoResultsError, fn -> Notes.get_notepad!(notepad.id) end
-    # end
-
-    # test "change_notepad/1 returns a notepad changeset" do
-    #   notepad = notepad_fixture()
-    #   assert %Ecto.Changeset{} = Notes.change_notepad(notepad)
-    # end
+ 
   end
 
-  # describe "notepads" do
-  #   alias Erlnote.Notes.Notepad
+  describe "notepads" do
+    alias Erlnote.Notes.{Notepad, Note, NoteUser, NoteTag}
+    alias Erlnote.Accounts
+    alias Erlnote.Tags
+    alias Erlnote.Tags.Tag
 
-  #   @valid_attrs %{name: "some name"}
-  #   @update_attrs %{name: "some updated name"}
-  #   @invalid_attrs %{name: nil}
+    @note_title_min_len 1
+    @note_title_max_len 255
+    @bad_id -1
+    @valid_id 1
+    @valid_tag_name "White hat"
+    @valid_tag_name_list ~w(white_hat black_hat blue_hat)
 
-  #   def notepad_fixture(attrs \\ %{}) do
-  #     {:ok, notepad} =
-  #       attrs
-  #       |> Enum.into(@valid_attrs)
-  #       |> Notes.create_notepad()
+    @users [
+      %{
+        name: "User 1",
+        username: "user1",
+        credentials: [
+          %{
+            email: "user1@example.com",
+            password: "superfreak"
+          }
+        ]
+      },
+      %{
+        name: "User 2",
+        username: "user2",
+        credentials: [
+          %{
+            email: "user2@example.com",
+            password: "supergeek"
+          }
+        ]
+      },
+      %{
+        name: "User 3",
+        username: "user3",
+        credentials: [
+          %{
+            email: "user3@example.com",
+            password: "supernerd"
+          }
+        ]
+      }
+    ]
 
-  #     notepad
-  #   end
+    @valid_attrs %{title: "First note", body: "En un lugar de la Mancha..."}
+    @update_attrs %{title: "First note", body: "En un lugar de la Mancha...", deleted: true}
+    @invalid_attrs %{deleted: "kill bit"}
 
-  #   test "list_notepads/0 returns all notepads" do
-  #     notepad = notepad_fixture()
-  #     assert Notes.list_notepads() == [notepad]
-  #   end
+    def notepad_fixture(attrs \\ %{}) do
+      
+      users = @users |> Enum.reduce([], fn u, acc -> [elem(Accounts.create_user(u), 1) | acc] end)
+      notes = for {:ok, %Note{} = n} <- Enum.map(users, fn u -> Notes.create_note(Accounts.get_id(u)) end), do: n
+      notepads = for {:ok, %Notepad{} = np} <- Enum.map(users, fn u -> Notes.create_notepad(Accounts.get_id(u)) end), do: np
 
-  #   test "get_notepad!/1 returns the notepad with given id" do
-  #     notepad = notepad_fixture()
-  #     assert Notes.get_notepad!(notepad.id) == notepad
-  #   end
+      {users, notes, notepads}
+    end
+ 
+    test "list_notepads/1 returns all user's notepads" do
+      {users, notes, notepads} = notepad_fixture()
+      [target_user | _] = users
+      target_user = target_user |> Repo.preload(:notepads)
+      assert target_user.notepads != []
 
-  #   test "create_notepad/1 with valid data creates a notepad" do
-  #     assert {:ok, %Notepad{} = notepad} = Notes.create_notepad(@valid_attrs)
-  #     assert notepad.name == "some name"
-  #   end
+      f = fn x, acc -> MapSet.put(acc, x) end
+      notepad_set = Enum.reduce(Notes.list_notepads(target_user.id), MapSet.new(), f)
+      notepad_ref_set = Enum.reduce(target_user.notepads, MapSet.new(), f)
+      assert MapSet.size(notepad_set) > 0 and MapSet.size(notepad_ref_set) > 0
+      assert MapSet.equal?(notepad_set, notepad_ref_set)
+    end
 
-  #   test "create_notepad/1 with invalid data returns error changeset" do
-  #     assert {:error, %Ecto.Changeset{}} = Notes.create_notepad(@invalid_attrs)
-  #   end
 
-  #   test "update_notepad/2 with valid data updates the notepad" do
-  #     notepad = notepad_fixture()
-  #     assert {:ok, %Notepad{} = notepad} = Notes.update_notepad(notepad, @update_attrs)
-  #     assert notepad.name == "some updated name"
-  #   end
-
-  #   test "update_notepad/2 with invalid data returns error changeset" do
-  #     notepad = notepad_fixture()
-  #     assert {:error, %Ecto.Changeset{}} = Notes.update_notepad(notepad, @invalid_attrs)
-  #     assert notepad == Notes.get_notepad!(notepad.id)
-  #   end
-
-  #   test "delete_notepad/1 deletes the notepad" do
-  #     notepad = notepad_fixture()
-  #     assert {:ok, %Notepad{}} = Notes.delete_notepad(notepad)
-  #     assert_raise Ecto.NoResultsError, fn -> Notes.get_notepad!(notepad.id) end
-  #   end
-
-  #   test "change_notepad/1 returns a notepad changeset" do
-  #     notepad = notepad_fixture()
-  #     assert %Ecto.Changeset{} = Notes.change_notepad(notepad)
-  #   end
-  # end
+  end
+  
 end
