@@ -658,6 +658,35 @@ defmodule Erlnote.NotesTest do
       assert Notes.list_notepads(@bad_id) == []
     end
 
+    test "get_notepad/1 with valid notepad ID gets a single notepad" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+
+      assert (%Notepad{} = n) = Notes.get_notepad(target_notepad.id)
+      assert n.id == target_notepad.id
+    end
+
+    test "get_notepad/1 with invalid notepad ID returns nil" do
+      assert is_nil(Notes.get_notepad(@bad_id))
+    end
+
+    test "create_notepad/1 with valid user ID creates a notepad such that owner == user ID" do
+      {users, _, notepads} = notepad_fixture()
+      [target_user | _ ] = users
+      target_user = target_user |> Repo.preload(:notepads)
+      f = fn x, acc -> MapSet.put(acc, x.id) end
+      old_notepads = Enum.reduce(target_user.notepads, MapSet.new(), f)
+
+      {:ok, %Notepad{} = np} = Notes.create_notepad(target_user.id)
+      np = np |> Repo.preload(:user)
+      assert np.user.id == target_user.id
+      assert not MapSet.member?(old_notepads, np.id)
+      target_user = target_user |> Repo.preload(:notepads, force: true)
+      new_notepads = Enum.reduce(target_user.notepads, MapSet.new(), f)
+      assert MapSet.subset?(old_notepads, new_notepads)
+      assert MapSet.member?(new_notepads, np.id)
+    end
+    
   end
   
 end
