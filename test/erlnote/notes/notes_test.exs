@@ -553,22 +553,20 @@ defmodule Erlnote.NotesTest do
       contributor_id = contributor.id
       contributor_id2 = contributor2.id
 
-      # IO.inspect target_note.user.id
-      # IO.inspect contributor_id
-      # IO.inspect contributor_id2
       {:ok, %NoteUser{}} = Notes.link_note_to_user(target_note.user.id, target_note.id, contributor_id, true, true)
       {:ok, %NoteUser{}} = Notes.link_note_to_user(target_note.user.id, target_note.id, contributor_id2, true, true)
       
       {:ok, %Note{}} = Notes.delete_note(target_note, target_note.user.id)
-      #IO.inspect Repo.all(from c1 in NoteUser, where: c1.note_id == ^target_note.id)
       [updated_note | []] = Repo.all(from nt in Note, where: nt.id == ^target_note.id)
       assert updated_note.deleted == true
-      updated_note = Repo.preload(updated_note, :users)
-      #IO.inspect updated_note
+
       {:ok, %Note{} = nc} = Notes.delete_note(updated_note, contributor_id)
       assert target_note.id == nc.id
+      assert length(nc.users) > 0
+      assert Enum.find(nc.users, fn u -> u.id == contributor_id end) == nil
       assert [hd | []] = Repo.all(from nt in Note, where: nt.id == ^target_note.id)
       assert [hd | []] = Repo.all(from nu in NoteUser, where: nu.note_id == ^target_note.id and nu.user_id == ^contributor_id2)
+      assert [] = Repo.all(from nu in NoteUser, where: nu.note_id == ^target_note.id and nu.user_id == ^contributor_id)
     end
     # test "create_notepad/1 with valid data creates a notepad" do
     #   assert {:ok, %Notepad{} = notepad} = Notes.create_notepad(@valid_attrs)

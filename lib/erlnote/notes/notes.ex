@@ -501,6 +501,7 @@ defmodule Erlnote.Notes do
         if Repo.all(from(u in NoteUser, where: u.note_id == ^note.id)) == [] and note.deleted do
           delete_note(note)
         else
+          note = Repo.preload note, :users, force: true
           {:ok, note}
         end
     end
