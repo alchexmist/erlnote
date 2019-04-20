@@ -643,6 +643,20 @@ defmodule Erlnote.NotesTest do
       assert MapSet.equal?(notepad_set, notepad_ref_set)
     end
 
+    test "list_notepads/1 returns empty list (user without notepads)" do
+      {users, notes, notepads} = notepad_fixture()
+      [target_user | _] = users
+      target_user = target_user |> Repo.preload(:notepads)
+      Enum.each(target_user.notepads, fn np -> Notes.delete_notepad(np, target_user.id) end)
+      target_user = target_user |> Repo.preload(:notepads, force: true)
+      assert target_user.notepads == []
+
+      assert Notes.list_notepads(target_user.id) == []
+    end
+
+    test "list_notepads/1 returns empty list (invalid user ID)" do
+      assert Notes.list_notepads(@bad_id) == []
+    end
 
   end
   

@@ -538,7 +538,7 @@ defmodule Erlnote.Notes do
     ) do
       user.notepads
     else
-      []
+      nil -> []
     end
   end
 
