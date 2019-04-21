@@ -616,6 +616,24 @@ defmodule Erlnote.Notes do
     Notepad.changeset(notepad, %{})
   end
 
+  @doc """
+  Creates assoc(note, notepad).
+
+  ## Examples
+
+      iex> add_note_to_notepad(valid_note_id, valid_notepad_id)
+      {:ok, %Note{}}
+
+      ex> add_note_to_notepad(valid_note_id, valid_notepad_id)
+      {:error, "There is already another notepad associated."}
+
+      iex> add_note_to_notepad(bad_note_id, valid_notepad_id)
+      {:error, msg}
+
+      iex> add_note_to_notepad(valid_note_id, bad_notepad_id)
+      {:error, msg}
+
+  """
   def add_note_to_notepad(note_id, notepad_id) when is_integer(note_id) and is_integer(notepad_id) do
     with(
       note when not is_nil(note) <- get_note(note_id),
@@ -631,6 +649,21 @@ defmodule Erlnote.Notes do
     end
   end
 
+  @doc """
+  Deletes assoc(note, notepad). Returns error if the note does not exist in the notepad.
+
+  ## Examples
+
+      iex> remove_note_from_notepad(valid_note_id, valid_notepad_id)
+      {:ok, %Note{}}
+
+      iex> remove_note_from_notepad(bad_note_id, valid_notepad_id)
+      {:error, msg}
+
+      iex> remove_note_from_notepad(valid_note_id, bad_notepad_id)
+      {:error, msg}
+
+  """
   def remove_note_from_notepad(note_id, notepad_id) when is_integer(note_id) and is_integer(notepad_id) do
     with(
       notepad when not is_nil(notepad) <- get_notepad(notepad_id),
