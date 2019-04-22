@@ -572,7 +572,7 @@ defmodule Erlnote.NotesTest do
   end
 
   describe "notepads" do
-    alias Erlnote.Notes.{Notepad, Note, NoteUser, NoteTag}
+    alias Erlnote.Notes.{Notepad, Note, NoteUser, NotepadTag}
     alias Erlnote.Accounts
     alias Erlnote.Tags
     alias Erlnote.Tags.Tag
@@ -773,10 +773,159 @@ defmodule Erlnote.NotesTest do
       y = y |> Repo.preload(:notepad)
       assert y.notepad == nil
       saved_note = (from sn in Note, where: sn.id == ^target_note.id) |> Repo.one |> Repo.preload(:notepad)
-      assert saved_note.notepad == nil
+      #assert saved_note.notepad == nil
+      assert saved_note == y
       saved_notepad = (from snp in Notepad, where: snp.id == ^target_notepad.id) |> Repo.one |> Repo.preload(:notes)
       assert saved_notepad.notes |> h.() == false
     end
+
+    test "remove_note_from_notepad/2 returns error if the note does not exist in the notepad (notepad != empty)" do
+      {_, notes, notepads} = notepad_fixture()
+      [aux_note | other_notes] = notes
+      [target_notepad | _] = notepads
+
+      {:ok, %Note{}} = Notes.add_note_to_notepad(aux_note.id, target_notepad.id)
+
+      [target_note | _] = other_notes
+      assert {:error, _} = Notes.remove_note_from_notepad(target_note.id, target_notepad.id)
+    end
+
+    test "remove_note_from_notepad/2 with invalid note ID returns error" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+
+      assert {:error, _} = Notes.remove_note_from_notepad(@bad_id, target_notepad.id)
+    end
+
+    test "remove_note_from_notepad/2 with invalid notepad ID returns error" do
+      {_, notes, _} = notepad_fixture()
+      [target_note | _] = notes
+
+      assert {:error, _} = Notes.remove_note_from_notepad(target_note.id, @bad_id)
+    end
+
+    test "link_tag_to_notepad/3 with valid data creates assoc(notepad, tag)" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      target_notepad = Repo.preload(target_notepad, [:user, :tags])
+      
+      assert target_notepad.tags == []
+      assert {:ok, %NotepadTag{} = nt} = Notes.link_tag_to_notepad(target_notepad.id, target_notepad.user.id, @valid_tag_name)
+      assert nt.notepad_id == target_notepad.id
+      (%Tag{} = t) = Tags.get_tag_by_name(@valid_tag_name)
+      assert nt.tag_id == t.id
+      assert Repo.one(from r in assoc(target_notepad, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name) != nil
+    end
+
+    test "link_tag_to_notepad/3 with duplicated tag name does nothing" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      target_notepad = Repo.preload(target_notepad, [:user, :tags])
+      
+      assert target_notepad.tags == []
+      assert {:ok, %NotepadTag{} = nt} = Notes.link_tag_to_notepad(target_notepad.id, target_notepad.user.id, @valid_tag_name)
+      assert {:ok, msg} = Notes.link_tag_to_notepad(target_notepad.id, target_notepad.user.id, @valid_tag_name)
+      assert is_binary msg
+      assert nt.notepad_id == target_notepad.id
+      (%Tag{} = t) = Tags.get_tag_by_name(@valid_tag_name)
+      assert nt.tag_id == t.id
+      assert Repo.one(from r in assoc(target_notepad, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name) != nil
+    end
+
+    test "link_tag_to_notepad/3 with invalid notepad ID returns error" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      target_notepad = Repo.preload(target_notepad, :user)
+      
+      assert {:error, msg} = Notes.link_tag_to_notepad(@bad_id, target_notepad.user.id, @valid_tag_name)
+    end
+
+    test "link_tag_to_notepad/3 with invalid user ID returns error" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      target_notepad = Repo.preload(target_notepad, [:user, :tags])
+      
+      assert target_notepad.tags == []
+      assert {:error, msg} = Notes.link_tag_to_notepad(target_notepad.id, @bad_id, @valid_tag_name)
+      assert Repo.all(from r in NotepadTag, where: r.notepad_id == ^target_notepad.id and r.tag_id == ^@bad_id) == []
+    end
+
+    test "get_tags_from_notepad/1 lists all the associated tags (notepad with tags)" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      target_notepad = Repo.preload(target_notepad, :user)
+      [tag_name_x | tail] = @valid_tag_name_list
+      [tag_name_y | _] = tail
+
+      {:ok, %NotepadTag{}} = Notes.link_tag_to_notepad(target_notepad.id, target_notepad.user.id, tag_name_x)
+      {:ok, %NotepadTag{}} = Notes.link_tag_to_notepad(target_notepad.id, target_notepad.user.id, tag_name_y)
+      tag_list = Notes.get_tags_from_notepad(target_notepad.id)
+      assert length(tag_list) == 2
+      tn1 = List.first(tag_list).name
+      tn2 = List.last(tag_list).name
+      assert tag_name_x == tn1 or tag_name_x == tn2
+      assert tag_name_y == tn1 or tag_name_y == tn2
+    end
+
+    test "get_tags_from_notepad/1 returns empty list (notepad without tags)" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      target_notepad = Repo.preload(target_notepad, :tags)
+      
+      assert target_notepad.tags == []
+      assert Notes.get_tags_from_notepad(target_notepad.id) == []
+    end
+
+    test "get_tags_from_notepad/1 with invalid notepad ID returns empty list" do
+      assert Notes.get_tags_from_notepad(@bad_id) == []
+    end
+
+    test "remove_tag_from_notepad/3 with valid data breaks assoc(notepad, tag)" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      target_notepad = Repo.preload(target_notepad, :user)
+      
+      {:ok, %NotepadTag{}} = Notes.link_tag_to_notepad(target_notepad.id, target_notepad.user.id, @valid_tag_name)
+      assert not is_nil(Enum.find(Notes.get_tags_from_notepad(target_notepad.id), fn t -> @valid_tag_name == t.name end))
+      %{remove_tag_from_notepad: {1, nil}, delete_tag: {:ok, %Tag{}}} = Notes.remove_tag_from_notepad(target_notepad.id, target_notepad.user.id, @valid_tag_name)
+      assert is_nil(Enum.find(Notes.get_tags_from_notepad(target_notepad.id), fn t -> @valid_tag_name == t.name end))
+    end
+
+    test "remove_tag_from_notepad/3 with valid data breaks assoc(notepad, tag). (tag_name_in_use_by_other_entities)" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | other_notepads] = notepads
+      target_notepad = Repo.preload(target_notepad, :user)
+      [target_notepad2 | _] = other_notepads
+      target_notepad2 = Repo.preload(target_notepad2, :user)
+      
+      {:ok, %NotepadTag{}} = Notes.link_tag_to_notepad(target_notepad.id, target_notepad.user.id, @valid_tag_name)
+      {:ok, %NotepadTag{}} = Notes.link_tag_to_notepad(target_notepad2.id, target_notepad2.user.id, @valid_tag_name)
+      assert not is_nil(Enum.find(Notes.get_tags_from_notepad(target_notepad.id), fn t -> @valid_tag_name == t.name end))
+      assert not is_nil(Enum.find(Notes.get_tags_from_notepad(target_notepad2.id), fn t -> @valid_tag_name == t.name end))
+      %{remove_tag_from_notepad: {1, nil}, delete_tag: {:error, _}} = Notes.remove_tag_from_notepad(target_notepad.id, target_notepad.user.id, @valid_tag_name)
+      assert is_nil(Enum.find(Notes.get_tags_from_notepad(target_notepad.id), fn t -> @valid_tag_name == t.name end))
+      assert not is_nil(Enum.find(Notes.get_tags_from_notepad(target_notepad2.id), fn t -> @valid_tag_name == t.name end))
+    end
+
+    test "remove_tag_from_notepad/3 with invalid notepad ID returns error" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      target_notepad = Repo.preload(target_notepad, :user)
+      
+      assert {:error, _} = Notes.remove_tag_from_notepad(@bad_id, target_notepad.user.id, @valid_tag_name)
+    end
+
+    test "remove_tag_from_notepad/3 with invalid user ID returns error" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      target_notepad = Repo.preload(target_notepad, :user)
+      
+      {:ok, %NotepadTag{}} = Notes.link_tag_to_notepad(target_notepad.id, target_notepad.user.id, @valid_tag_name)
+      assert not is_nil(Enum.find(Notes.get_tags_from_notepad(target_notepad.id), fn t -> @valid_tag_name == t.name end))
+      {:error, _} = Notes.remove_tag_from_notepad(target_notepad.id, @bad_id, @valid_tag_name)
+    end
+
+
 
 
   end

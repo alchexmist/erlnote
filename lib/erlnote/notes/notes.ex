@@ -677,6 +677,24 @@ defmodule Erlnote.Notes do
     end
   end
 
+  @doc """
+  Creates assoc(notepad, tag).
+
+  ## Examples
+
+      iex> link_tag_to_notepad(notepad_id, user_id, tag_name)
+      {:ok, %NotepadTag{}}
+
+      iex> link_tag_to_notepad(notepad_id, user_id, duplicated_tag_name)
+      {:ok, "linked"}
+
+      iex> link_tag_to_notepad(bad_note_id, user_id, tag_name)
+      {:error, "Notepad ID not found."}
+
+      iex> link_tag_to_notepad(notepad_id, bad_user_id, tag_name)
+      {:error, "Write permission: Disabled."}
+
+  """
   def link_tag_to_notepad(notepad_id, user_id, tag_name)
     when is_integer(notepad_id) and is_integer(user_id) and is_binary(tag_name) do
 
@@ -703,6 +721,50 @@ defmodule Erlnote.Notes do
     end
   end
 
+  @doc """
+  Lists all tags associated with a notepad.
+
+  ## Examples
+
+      iex> get_tags_from_notepad(notepad_id)
+      [%Tag{}]
+
+      iex> get_tags_from_notepad(notepad_without_tags_id)
+      []
+
+      iex> get_tags_from_notepad(bad_notepad_id)
+      []
+
+  """
+  def get_tags_from_notepad(notepad_id) when is_integer(notepad_id) do
+    with n when not is_nil(n) <- get_notepad(notepad_id) do
+      (from r in assoc(n, :tags)) |> Repo.all
+    else
+      nil -> []
+    end
+  end
+
+  @doc """
+  Deletes assoc(notepad, tag).
+
+  ## Examples
+
+      iex> remove_tag_from_notepad(notepad_id, user_id, tag_name_not_in_use_anymore)
+      %{remove_tag_from_notepad: {1, nil}, delete_tag: {:ok, %Tag{}}}
+
+      iex> remove_tag_from_notepad(notepad_id, user_id, tag_name_in_use_by_other_entities)
+      %{remove_tag_from_notepad: {1, nil}, delete_tag: {:error, msg_string}}
+
+      iex> remove_tag_from_notepad(notepad_id, user_id, nonexistent_tag_name)
+      :ok
+
+      iex> remove_tag_from_notepad(bad_note_id, user_id, tag_name)
+      {:error, "Notepad ID not found."}
+
+      iex> remove_tag_from_notepad(notepad_id, bad_user_id, tag_name)
+      {:error, "Write permission: Disabled."}
+
+  """
   def remove_tag_from_notepad(notepad_id, user_id, tag_name)
     when is_integer(notepad_id) and is_integer(user_id) and is_binary(tag_name) do
     
