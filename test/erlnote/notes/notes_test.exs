@@ -53,7 +53,7 @@ defmodule Erlnote.NotesTest do
     @update_attrs %{title: "First note", body: "En un lugar de la Mancha...", deleted: true}
     @invalid_attrs %{deleted: "kill bit"}
 
-    def note_fixture(attrs \\ %{}) do
+    def note_fixture(_attrs \\ %{}) do
       
       users = @users |> Enum.reduce([], fn u, acc -> [elem(Accounts.create_user(u), 1) | acc] end)
       notes = for {:ok, %Note{} = n} <- Enum.map(users, fn u -> Notes.create_note(Accounts.get_id(u)) end), do: n
@@ -101,17 +101,6 @@ defmodule Erlnote.NotesTest do
       end
       |> List.flatten
       |> Enum.count(fn x -> x == true end)
-      # r = try do
-      #   for n <- notes, on <- owner_notes do
-      #     if n.id == on.id and n.user == on.user do
-      #       throw(:found)
-      #     else
-      #       false
-      #     end
-      #   end
-      # catch
-      #   :found -> true
-      # end
 
       assert r == 1
     end
@@ -577,10 +566,7 @@ defmodule Erlnote.NotesTest do
     alias Erlnote.Tags
     alias Erlnote.Tags.Tag
 
-    @note_title_min_len 1
-    @note_title_max_len 255
     @bad_id -1
-    @valid_id 1
     @valid_tag_name "White hat"
     @valid_tag_name_list ~w(white_hat black_hat blue_hat)
 
@@ -617,11 +603,10 @@ defmodule Erlnote.NotesTest do
       }
     ]
 
-    @valid_attrs %{name: "First notepad"}
     @update_attrs %{name: "Y el bit que colmó el buffer es ..."}
     @invalid_attrs %{name: String.duplicate("Alberto", 300)}
 
-    def notepad_fixture(attrs \\ %{}) do
+    def notepad_fixture(_attrs \\ %{}) do
       
       users = @users |> Enum.reduce([], fn u, acc -> [elem(Accounts.create_user(u), 1) | acc] end)
       notes = for {:ok, %Note{} = n} <- Enum.map(users, fn u -> Notes.create_note(Accounts.get_id(u)) end), do: n
@@ -631,7 +616,7 @@ defmodule Erlnote.NotesTest do
     end
  
     test "list_notepads/1 returns all user's notepads" do
-      {users, notes, notepads} = notepad_fixture()
+      {users, _, _} = notepad_fixture()
       [target_user | _] = users
       target_user = target_user |> Repo.preload(:notepads)
       assert target_user.notepads != []
@@ -644,7 +629,7 @@ defmodule Erlnote.NotesTest do
     end
 
     test "list_notepads/1 returns empty list (user without notepads)" do
-      {users, notes, notepads} = notepad_fixture()
+      {users, _, _} = notepad_fixture()
       [target_user | _] = users
       target_user = target_user |> Repo.preload(:notepads)
       Enum.each(target_user.notepads, fn np -> Notes.delete_notepad(np, target_user.id) end)
@@ -671,7 +656,7 @@ defmodule Erlnote.NotesTest do
     end
 
     test "create_notepad/1 with valid user ID creates a notepad such that owner == user ID" do
-      {users, _, notepads} = notepad_fixture()
+      {users, _, _} = notepad_fixture()
       [target_user | _ ] = users
       target_user = target_user |> Repo.preload(:notepads)
       f = fn x, acc -> MapSet.put(acc, x.id) end
@@ -738,7 +723,7 @@ defmodule Erlnote.NotesTest do
       target_note = target_note |> Repo.preload(:notepad)
       assert target_note.notepad == nil
 
-      {:ok, %Note{} = n} = Notes.add_note_to_notepad(target_note.id, target_notepad.id)
+      {:ok, %Note{}} = Notes.add_note_to_notepad(target_note.id, target_notepad.id)
       assert {:error, _} = Notes.add_note_to_notepad(target_note.id, target_notepad.id)
     end
 
@@ -925,8 +910,27 @@ defmodule Erlnote.NotesTest do
       {:error, _} = Notes.remove_tag_from_notepad(target_notepad.id, @bad_id, @valid_tag_name)
     end
 
+    test "delete_notepad/2 with user ID == owner ID deletes notepad" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      target_notepad = Repo.preload(target_notepad, :user)
+      
+      {:ok, %NotepadTag{}} = Notes.link_tag_to_notepad(target_notepad.id, target_notepad.user.id, @valid_tag_name)
 
+      assert {:ok, %Notepad{} = n} = Notes.delete_notepad(target_notepad, target_notepad.user.id)
+      assert Map.delete(target_notepad, :__meta__) == Map.delete(n, :__meta__)
+      assert Repo.all(from np in Notepad, where: np.id == ^target_notepad.id) == []
+      assert Repo.all(from r in NotepadTag, where: r.notepad_id == ^target_notepad.id) == []
+    end
 
+    test "delete_notepad/2 with user ID != owner ID returns error" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      target_notepad = Repo.preload(target_notepad, :user)
+      
+      assert {:error, msg} = Notes.delete_notepad(target_notepad, @bad_id)
+      assert Repo.one(from np in Notepad, where: np.id == ^target_notepad.id) != nil
+    end
 
   end
   
