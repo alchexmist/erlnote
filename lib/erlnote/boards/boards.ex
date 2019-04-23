@@ -11,53 +11,85 @@ defmodule Erlnote.Boards do
   alias Erlnote.Accounts
   alias Erlnote.Accounts.User
 
+  # @doc """
+  # Returns the list of boards.
+
+  # ## Examples
+
+  #     iex> list_boards()
+  #     [%Board{}, ...]
+
+  # """
+  # def list_boards do
+  #   Repo.all(Board)
+  # end
+
   @doc """
-  Returns the list of boards.
+  Returns the list of boards. Board owner == User ID and board.deleted == false.
 
   ## Examples
 
-      iex> list_boards()
-      [%Board{}, ...]
+      iex> list_is_owner_boards(1)
+      [%Board{}]
+
+      iex> list_is_owner_boards(-1)
+      []
 
   """
-  def list_boards do
-    Repo.all(Board)
-  end
-
   def list_is_owner_boards(user_id) when is_integer(user_id) do
-    with(
-      user = Accounts.get_user_by_id(user_id),
-      true <- !is_nil(user),
-      user = Repo.preload(user, :owner_boards)
-    ) do
-      user.owner_boards
-    else
-      _ -> nil
+    case user = Accounts.get_user_by_id(user_id) do
+      nil -> []
+      _ -> Repo.all(from b in assoc(user, :owner_boards), where: b.deleted == false)
     end
+    # with(
+    #   user = Accounts.get_user_by_id(user_id),
+    #   true <- !is_nil(user),
+    #   user = Repo.preload(user, :owner_boards)
+    # ) do
+    #   user.owner_boards
+    # else
+    #   _ -> nil
+    # end
   end
 
+  @doc """
+  Returns the list of boards. is_contributor? == User ID.
+
+  ## Examples
+
+      iex> list_is_contributor_boards(1)
+      [%Board{}]
+
+      iex> list_is_contributor_boards(-1)
+      []
+
+  """
   def list_is_contributor_boards(user_id) when is_integer(user_id) do
     case user = Accounts.get_user_by_id(user_id) do
       nil -> []
-      _ -> (user |> Repo.preload(:boards)).boards
+      _ -> (from b in assoc(user, :boards)) |> Repo.all
     end
+    # case user = Accounts.get_user_by_id(user_id) do
+    #   nil -> []
+    #   _ -> (user |> Repo.preload(:boards)).boards
+    # end
   end
 
-  @doc """
-  Gets a single board.
+  # @doc """
+  # Gets a single board.
 
-  Raises `Ecto.NoResultsError` if the Board does not exist.
+  # Raises `Ecto.NoResultsError` if the Board does not exist.
 
-  ## Examples
+  # ## Examples
 
-      iex> get_board!(123)
-      %Board{}
+  #     iex> get_board!(123)
+  #     %Board{}
 
-      iex> get_board!(456)
-      ** (Ecto.NoResultsError)
+  #     iex> get_board!(456)
+  #     ** (Ecto.NoResultsError)
 
-  """
-  def get_board!(id) when is_integer(id), do: Repo.get!(Board, id)
+  # """
+  # def get_board!(id) when is_integer(id), do: Repo.get!(Board, id)
 
    @doc """
   Gets a single board.
@@ -73,10 +105,12 @@ defmodule Erlnote.Boards do
       nil
 
   """
-  def get_board(id) when is_integer(id), do: Repo.get(Board, id)
+  def get_board(id) when is_integer(id) do
+    Repo.one(from b in Board, where: b.id == ^id and b.deleted == false)
+  end
 
   @doc """
-  Creates a board.
+  Creates a empty board. Board owner == User ID.
 
   ## Examples
 
@@ -84,12 +118,17 @@ defmodule Erlnote.Boards do
       {:ok, %Board{}}
 
       iex> create_board(user_id_not_found)
-      {:error, "User ID not found."}
+      {:error, %Ecto.Changeset{}}
 
   """
   def create_board(user_id) when is_integer(user_id) do
     case user = Accounts.get_user_by_id(user_id) do
-      nil -> {:error, "User ID not found."}
+      nil ->
+        {
+          :error,
+          change(%Board{}, %{user: %User{id: user_id}})
+          |> add_error(:user, user_id |> Integer.to_string, additional: "User ID not found.")
+        }
       _ ->
         build_assoc(user, :owner_boards)
         |> Board.create_changeset(%{text: "", title: "board-" <> Ecto.UUID.generate, deleted: false})

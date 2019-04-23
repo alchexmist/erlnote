@@ -781,5 +781,4 @@ defmodule Erlnote.Notes do
     end
   end
 
-
 end
