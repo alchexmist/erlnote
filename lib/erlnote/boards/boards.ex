@@ -4,6 +4,7 @@ defmodule Erlnote.Boards do
   """
 
   import Ecto
+  import Ecto.Changeset
   import Ecto.Query, warn: false
   alias Erlnote.Repo
 
@@ -136,19 +137,47 @@ defmodule Erlnote.Boards do
     end
   end
 
+  defp is_board_owner?(%Board{} = board, user_id) when is_map(board) and is_integer(user_id) do
+    (board |> Repo.preload(:user)).user.id == user_id
+  end
+
+  defp is_board_user?(%Board{} = board, user_id) when is_map(board) and is_integer(user_id) do
+    case (from u in assoc(board, :users), where: u.id == ^user_id) |> Repo.one do
+      %User{} -> true
+      _ -> false
+    end
+  end
+
   @doc """
   Updates a board.
 
   ## Examples
 
-      iex> update_board(board, %{field: new_value})
+      iex> update_board(1, 1, %{field: new_value})
       {:ok, %Board{}}
 
-      iex> update_board(board, %{field: bad_value})
+      iex> update_board(1, 1, %{field: bad_value})
       {:error, %Ecto.Changeset{}}
 
+      iex> update_board(1, -1, %{field: new_value})
+      {:error, "Permission denied."}
+
+      iex> update_board(-1, 1, %{field: new_value})
+      {:error, "Permission denied."}
+
   """
-  def update_board(%Board{} = board, attrs) do
+  def update_board(user_id, board_id, attrs) when is_integer(user_id) and is_integer(board_id) and is_map(attrs) do
+    with(
+      board when not is_nil(board) <- get_board(board_id),
+      true <- is_board_owner?(board, user_id) or is_board_user?(board, user_id)
+    ) do
+      update_board(board, attrs)
+    else
+      _ -> {:error, "Permission denied."}
+    end
+  end
+
+  defp update_board(%Board{} = board, attrs) do
     board
     |> Board.update_changeset(attrs)
     |> Repo.update()
@@ -167,20 +196,20 @@ defmodule Erlnote.Boards do
 
   """
   def delete_board(%Board{} = board, user_id) when is_integer(user_id) do
-    case board_users = Repo.preload(board, :users) do
-      nil -> {:error, %Ecto.Changeset{}}
-      _ ->
-        board = (board |> Repo.preload(:user))
-        cond do
-          board_users.users == [] and user_id == board.owner ->
-            Repo.delete(board)
-          user_id == board.owner ->
-            update_board(board, %{deleted: true})
-          true ->
-            from(r in BoardUser, where: r.user_id == ^user_id, where: r.board_id == ^board.id) |> Repo.delete_all
-            if Repo.all(from(u in BoardUser, where: u.board_id == ^board.id)) == [] and board.deleted do
-              Repo.delete(board)
-            end
+    board = board |> Repo.preload([:user, :users])
+    cond do
+      board.users == [] and user_id == board.user.id -> # Board without users (Owner)
+        Repo.delete(board)
+      user_id == board.user.id -> # Board with users (Owner)
+        update_board(board, %{deleted: true})
+      true ->
+        from(r in BoardUser, where: r.user_id == ^user_id, where: r.board_id == ^board.id) |> Repo.delete_all
+
+        if Repo.all(from(u in BoardUser, where: u.board_id == ^board.id)) == [] and board.deleted do
+          Repo.delete(board)
+        else
+          board = Repo.preload board, :users, force: true
+          {:ok, board}
         end
     end
   end
@@ -198,17 +227,57 @@ defmodule Erlnote.Boards do
     Board.changeset(board, %{})
   end
 
-  def link_board_to_user(board_id, user_id) when is_integer(board_id) and is_integer(user_id) do
-      user = Accounts.get_user_by_id(user_id)
-      board = get_board(board_id)
+  # Para unlink usar la función delete_board.
+  @doc """
+  Adds user_id as a collaborator on the board.
+
+  ## Examples
+
+      iex> link_board_to_user(owner_id, board_id, user_id)
+      {:ok, %BoardUser{}}
+
+      iex> link_board_to_user(no_owner_id, board_id, user_id)
+      {:error, "Permission denied."}
+
+      iex> link_board_to_user(owner_id, bad_board_id, user_id)
+      {:error, "User ID or board ID not found."}
+
+      iex> link_board_to_user(owner_id, board_id, bad_user_id)
+      {:error, "User ID or board ID not found."}
+
+  """
+  def link_board_to_user(owner_id, board_id, user_id) when is_integer(owner_id) and is_integer(board_id) and is_integer(user_id) do
+
+    with(
+      user when not is_nil(user) <- Accounts.get_user_by_id(user_id),
+      board when not is_nil(board) <- Repo.preload(get_board(board_id), :user),
+      true <- board.user.id == owner_id
+    ) do
       cond do
-        is_nil(user) or is_nil(board) -> {:error, "user ID or board ID not found."}
-        (board |> Repo.preload(:user)).user.id == user_id -> {:ok, "linked"}
+        board.user.id == user_id -> {:ok, "linked"}
         true ->
           Repo.insert(
             BoardUser.changeset(%BoardUser{}, %{board_id: board.id, user_id: user.id})
           )
           # Return {:ok, _} o {:error, changeset}
       end
+    else
+      nil -> {:error, "User ID or board ID not found."}
+      false -> {:error, "Permission denied."}
     end
+  end
+
+  # def link_board_to_user(board_id, user_id) when is_integer(board_id) and is_integer(user_id) do
+  #     user = Accounts.get_user_by_id(user_id)
+  #     board = get_board(board_id)
+  #     cond do
+  #       is_nil(user) or is_nil(board) -> {:error, "user ID or board ID not found."}
+  #       (board |> Repo.preload(:user)).user.id == user_id -> {:ok, "linked"}
+  #       true ->
+  #         Repo.insert(
+  #           BoardUser.changeset(%BoardUser{}, %{board_id: board.id, user_id: user.id})
+  #         )
+  #         # Return {:ok, _} o {:error, changeset}
+  #     end
+  #   end
 end

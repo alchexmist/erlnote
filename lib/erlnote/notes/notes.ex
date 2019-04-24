@@ -173,7 +173,8 @@ defmodule Erlnote.Notes do
       true <- note.user.id == owner_id
     ) do
       cond do
-        (note |> Repo.preload(:user)).user.id == user_id -> {:ok, "linked"}
+        # (note |> Repo.preload(:user)).user.id == user_id -> {:ok, "linked"}
+        note.user.id == user_id -> {:ok, "linked"}
         true ->
           Repo.insert(
             NoteUser.changeset(%NoteUser{}, %{note_id: note.id, user_id: user.id, can_read: can_read, can_write: can_write})
