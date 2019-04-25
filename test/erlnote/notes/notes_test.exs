@@ -12,7 +12,6 @@ defmodule Erlnote.NotesTest do
     @note_title_min_len 1
     @note_title_max_len 255
     @bad_id -1
-    @valid_id 1
     @valid_tag_name "White hat"
     @valid_tag_name_list ~w(white_hat black_hat blue_hat)
 
@@ -63,7 +62,9 @@ defmodule Erlnote.NotesTest do
 
     defp contains_note?(_, [], acc), do: acc
     defp contains_note?(%Note{} = note, note_list, acc) when is_list(note_list) do
-      [h | t] = note_list
+      [%Note{} = h | t] = note_list
+      h = h |> Repo.preload(:user)
+      note = note |> Repo.preload(:user)
       r = if h.id == note.id and h.user == note.user do
         [true | acc]
       else
@@ -80,11 +81,13 @@ defmodule Erlnote.NotesTest do
       [target_user | _] = users
       assert {:ok, %Note{} = note} = Notes.create_note(target_user.id)
       assert note.id != nil and note.id > 0
+      assert (from n in assoc(target_user, :notes), where: n.id == ^note.id) |> Repo.one == note
       note = (note |> Repo.preload(:user))
       assert note.user.id == target_user.id
       assert note.deleted == false
+      assert not is_nil(note.title)
       title_len = String.length(note.title)
-      assert note.title != nil and title_len >= @note_title_min_len and title_len <= @note_title_max_len
+      assert title_len >= @note_title_min_len and title_len <= @note_title_max_len
     end
 
     test "create_note/1 with invalid data returns error changeset" do
@@ -106,7 +109,7 @@ defmodule Erlnote.NotesTest do
     end
 
     test "list_is_owner_notes/1 with invalid data returns the empty list" do
-      assert Notes.list_is_owner_notes(-1) == []
+      assert Notes.list_is_owner_notes(@bad_id) == []
     end
 
     test "list_is_collaborator_notes/1 with valid data returns all notes in which the user acts as a contributor" do
@@ -120,7 +123,8 @@ defmodule Erlnote.NotesTest do
       note_list = Notes.list_is_collaborator_notes(collaborator_id)
       assert length(note_list) == 1
       [note | []] = note_list
-      note = note |> Repo.preload([:users])
+      note = note |> Repo.preload([:users], force: true)
+      assert note.id == target_note.id
       assert note.id == note_user.note_id
       assert Enum.find(note.users, [], fn x -> x.id == note_user.user_id end) != []
     end
@@ -142,13 +146,12 @@ defmodule Erlnote.NotesTest do
     test "update_note/3 with valid data updates the note" do
       {_, notes} = note_fixture()
       [note | _] = notes
-      saved_id = note.id
       note = note |> Repo.preload(:user)
-      assert {:ok, %Note{} = note} = Notes.update_note(note.user.id, note.id, @update_attrs)
-      assert note.body == @update_attrs.body
-      assert note.title == @update_attrs.title
-      assert note.deleted == @update_attrs.deleted
-      assert note.id == saved_id
+      assert {:ok, %Note{} = n} = Notes.update_note(note.user.id, note.id, @update_attrs)
+      assert n.body == @update_attrs.body
+      assert n.title == @update_attrs.title
+      assert n.deleted == @update_attrs.deleted
+      assert n.id == note.id
     end
 
     test "update_note/3 with invalid data returns error changeset" do
@@ -160,11 +163,15 @@ defmodule Erlnote.NotesTest do
     end
 
     test "update_note/3 with invalid note_id returns error tuple" do
-      assert {:error, _} = Notes.update_note(@valid_id, @bad_id, @valid_attrs)
+      {users, _} = note_fixture()
+      [user | _] = users
+      assert {:error, _} = Notes.update_note(user.id, @bad_id, @valid_attrs)
     end
 
     test "update_note/3 with invalid user_id returns error tuple" do
-      assert {:error, _} = Notes.update_note(@bad_id, @valid_id, @valid_attrs)
+      {_, notes} = note_fixture()
+      [note | _] = notes
+      assert {:error, _} = Notes.update_note(@bad_id, note.id, @valid_attrs)
     end
 
     test "link_note_to_user/5 with valid data adds a collaborator on the note" do
