@@ -224,7 +224,7 @@ defmodule Erlnote.Boards do
 
   """
   def change_board(%Board{} = board) do
-    Board.changeset(board, %{})
+    Board.update_changeset(board, %{})
   end
 
   # Para unlink usar la función delete_board.

@@ -24,7 +24,7 @@ defmodule Erlnote.Boards.Board do
   def update_changeset(board, params) do
     board
     |> cast(params, [:deleted, :text, :title])
-    |> validate_inclusion(:deleted, [true, false])
+    |> validate_required([:deleted])
     |> validate_length(:title, min: @min_title_len, max: @max_title_len)
   end
 
@@ -33,7 +33,6 @@ defmodule Erlnote.Boards.Board do
     board
     |> cast(params, [:deleted])
     |> validate_required([:deleted])
-    |> validate_inclusion(:deleted, [true, false])
     |> changeset(params)
   end
 

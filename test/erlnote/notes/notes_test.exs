@@ -80,7 +80,7 @@ defmodule Erlnote.NotesTest do
       {users, _} = note_fixture()
       [target_user | _] = users
       assert {:ok, %Note{} = note} = Notes.create_note(target_user.id)
-      assert note.id != nil and note.id > 0
+      assert not is_nil(note.id) and note.id > 0
       assert (from n in assoc(target_user, :notes), where: n.id == ^note.id) |> Repo.one == note
       note = (note |> Repo.preload(:user))
       assert note.user.id == target_user.id
@@ -140,7 +140,7 @@ defmodule Erlnote.NotesTest do
     end
 
     test "get_note/1 returns nil with invalid id" do
-      assert Notes.get_note(@bad_id) == nil
+      assert is_nil(Notes.get_note(@bad_id))
     end
 
     test "update_note/3 with valid data updates the note" do
@@ -182,8 +182,9 @@ defmodule Erlnote.NotesTest do
 
       assert target_note.users == []
       assert {:ok, %NoteUser{} = note_user} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, true)
+      assert note_user.note_id == target_note.id and note_user.user_id == collaborator_id
       assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) != []
-      assert Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id) != nil
+      assert not is_nil(Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id))
     end
 
     test "link_note_to_user/5 with valid data (write enabled/read disabled) adds a collaborator on the note (write enabled/read disabled)" do
@@ -223,7 +224,7 @@ defmodule Erlnote.NotesTest do
       assert target_note.users == []
       assert {:error, "Permission denied."} = Notes.link_note_to_user(@bad_id, target_note.id, collaborator_id, true, true)
       assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) == []
-      assert Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id) == nil
+      assert is_nil(Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id))
     end
 
     test "link_note_to_user/5 with invalid note ID returns a error" do
@@ -247,7 +248,7 @@ defmodule Erlnote.NotesTest do
       assert target_note.users == []
       assert {:error, "User ID or note ID not found."} = Notes.link_note_to_user(target_note.user.id, target_note.id, collaborator_id, true, true)
       assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) == []
-      assert Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id) == nil
+      assert is_nil(Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id))
     end
 
     test "set_can_read_from_note/3 with valid data enables/disables read permission for (contributor, note)" do
@@ -384,7 +385,7 @@ defmodule Erlnote.NotesTest do
       assert nt.note_id == target_note.id
       (%Tag{} = t) = Tags.get_tag_by_name(@valid_tag_name)
       assert nt.tag_id == t.id
-      assert Repo.one(from r in assoc(target_note, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name) != nil
+      assert not is_nil(Repo.one(from r in assoc(target_note, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name))
     end
 
     test "link_tag_to_note/3 with duplicated tag name does nothing" do
@@ -399,7 +400,7 @@ defmodule Erlnote.NotesTest do
       assert nt.note_id == target_note.id
       (%Tag{} = t) = Tags.get_tag_by_name(@valid_tag_name)
       assert nt.tag_id == t.id
-      assert Repo.one(from r in assoc(target_note, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name) != nil
+      assert not is_nil(Repo.one(from r in assoc(target_note, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name))
     end
 
     test "link_tag_to_note/3 with invalid note ID returns error" do
@@ -517,7 +518,8 @@ defmodule Erlnote.NotesTest do
       {:ok, %NoteUser{}} = Notes.link_note_to_user(target_note.user.id, target_note.id, contributor_id, true, true)
 
       assert target_note.deleted == false
-      assert {:ok, %Note{}} = Notes.delete_note(target_note, target_note.user.id)
+      assert {:ok, %Note{} = r} = Notes.delete_note(target_note, target_note.user.id)
+      assert r.id == target_note.id and r.deleted == true
       assert [updated_note | []] = Repo.all(from nt in Note, where: nt.id == ^target_note.id)
       assert updated_note.deleted == true
     end
@@ -559,7 +561,7 @@ defmodule Erlnote.NotesTest do
       {:ok, %Note{} = nc} = Notes.delete_note(updated_note, contributor_id)
       assert target_note.id == nc.id
       assert length(nc.users) > 0
-      assert Enum.find(nc.users, fn u -> u.id == contributor_id end) == nil
+      assert is_nil(Enum.find(nc.users, fn u -> u.id == contributor_id end))
       assert [hd | []] = Repo.all(from nt in Note, where: nt.id == ^target_note.id)
       assert [hd | []] = Repo.all(from nu in NoteUser, where: nu.note_id == ^target_note.id and nu.user_id == ^contributor_id2)
       assert [] = Repo.all(from nu in NoteUser, where: nu.note_id == ^target_note.id and nu.user_id == ^contributor_id)
@@ -711,7 +713,7 @@ defmodule Erlnote.NotesTest do
       [target_notepad | _] = notepads
 
       target_note = target_note |> Repo.preload(:notepad)
-      assert target_note.notepad == nil
+      assert is_nil(target_note.notepad)
 
       {:ok, %Note{} = n} = Notes.add_note_to_notepad(target_note.id, target_notepad.id)
       assert n.id == target_note.id
@@ -728,7 +730,7 @@ defmodule Erlnote.NotesTest do
       [target_notepad | _] = notepads
 
       target_note = target_note |> Repo.preload(:notepad)
-      assert target_note.notepad == nil
+      assert is_nil(target_note.notepad)
 
       {:ok, %Note{}} = Notes.add_note_to_notepad(target_note.id, target_notepad.id)
       assert {:error, _} = Notes.add_note_to_notepad(target_note.id, target_notepad.id)
@@ -763,7 +765,7 @@ defmodule Erlnote.NotesTest do
       {:ok, %Note{} = y} = Notes.remove_note_from_notepad(target_note.id, target_notepad.id)
       assert y.id == target_note.id
       y = y |> Repo.preload(:notepad)
-      assert y.notepad == nil
+      assert is_nil(y.notepad)
       saved_note = (from sn in Note, where: sn.id == ^target_note.id) |> Repo.one |> Repo.preload(:notepad)
       #assert saved_note.notepad == nil
       assert saved_note == y
@@ -806,7 +808,7 @@ defmodule Erlnote.NotesTest do
       assert nt.notepad_id == target_notepad.id
       (%Tag{} = t) = Tags.get_tag_by_name(@valid_tag_name)
       assert nt.tag_id == t.id
-      assert Repo.one(from r in assoc(target_notepad, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name) != nil
+      assert not is_nil(Repo.one(from r in assoc(target_notepad, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name))
     end
 
     test "link_tag_to_notepad/3 with duplicated tag name does nothing" do
@@ -821,7 +823,7 @@ defmodule Erlnote.NotesTest do
       assert nt.notepad_id == target_notepad.id
       (%Tag{} = t) = Tags.get_tag_by_name(@valid_tag_name)
       assert nt.tag_id == t.id
-      assert Repo.one(from r in assoc(target_notepad, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name) != nil
+      assert not is_nil(Repo.one(from r in assoc(target_notepad, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name))
     end
 
     test "link_tag_to_notepad/3 with invalid notepad ID returns error" do
@@ -936,7 +938,7 @@ defmodule Erlnote.NotesTest do
       target_notepad = Repo.preload(target_notepad, :user)
       
       assert {:error, msg} = Notes.delete_notepad(target_notepad, @bad_id)
-      assert Repo.one(from np in Notepad, where: np.id == ^target_notepad.id) != nil
+      assert not is_nil(Repo.one(from np in Notepad, where: np.id == ^target_notepad.id))
     end
 
   end
