@@ -42,7 +42,7 @@ defmodule Erlnote.Tasks do
   end
 
   @doc """
-  Returns the list of tasklists. Tasklist owner == User ID.
+  Returns the list of tasklists. Tasklist owner == User ID and deleted == false.
 
   ## Examples
 
@@ -56,8 +56,26 @@ defmodule Erlnote.Tasks do
   def list_is_owner_tasklists(user_id) when is_integer(user_id) do
     case user = Accounts.get_user_by_id(user_id) do
       nil -> []
-      _ -> (user |> Repo.preload(:owner_tasklists)).owner_tasklists
-      # _ -> (from u in assoc(user, :owner_tasklists)) |> Repo.all
+      _ -> Repo.all(from t in assoc(user, :owner_tasklists), where: t.deleted == false)
+    end
+  end
+
+  @doc """
+  Returns the list of tasklists. is_contributor? == User ID.
+
+  ## Examples
+
+      iex> list_is_contributor_tasklists(1)
+      [%Note{}]
+
+      iex> list_is_contributor_tasklists(-1)
+      []
+
+  """
+  def list_is_contributor_tasklists(user_id) when is_integer(user_id) do
+    case user = Accounts.get_user_by_id(user_id) do
+      nil -> []
+      _ -> (from t in assoc(user, :tasklists)) |> Repo.all
     end
   end
 
@@ -75,7 +93,35 @@ defmodule Erlnote.Tasks do
       nil
 
   """
-  def get_tasklist(id) when is_integer(id), do: Repo.get(Tasklist, id)
+  def get_tasklist(id) when is_integer(id) do
+    Repo.one(from t in Tasklist, where: t.id == ^id and t.deleted == false)
+  end
+
+  @doc """
+  Updates a tasklist.
+
+  ## Examples
+
+      iex> update_tasklist(1, 1, %{field: new_value})
+      {:ok, %Tasklist{}}
+
+      iex> update_tasklist(1, 1, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+      iex> update_tasklist(1, -1, %{field: new_value})
+      {:error, "Permission denied."}
+
+      iex> update_tasklist(-1, 1, %{field: new_value})
+      {:error, "Permission denied."}
+
+  """
+  def update_tasklist(user_id, tasklist_id, attrs) when is_integer(user_id) and is_integer(tasklist_id) and is_map(attrs) do
+    if can_write?(user_id, tasklist_id) do
+      update_tasklist(get_tasklist(tasklist_id), attrs)
+    else
+      {:error, "Permission denied."}
+    end
+  end
 
   @doc """
   Updates a tasklist.
@@ -89,7 +135,7 @@ defmodule Erlnote.Tasks do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_tasklist(%Tasklist{} = tasklist, attrs) do
+  defp update_tasklist(%Tasklist{} = tasklist, attrs) when is_map(tasklist) and is_map(attrs) do
     tasklist
     |> Tasklist.update_changeset(attrs)
     |> Repo.update()
@@ -126,18 +172,22 @@ defmodule Erlnote.Tasks do
 
   """
   def delete_tasklist(%Tasklist{} = tasklist, user_id) when is_integer(user_id) do
-        tasklist = (tasklist |> Repo.preload([:user, :users]))
-        cond do
-          tasklist.users == [] and user_id == tasklist.user_id -> # Tasklist without users (Owner)
-            delete_tasklist(tasklist)
-          user_id == tasklist.user_id -> # Tasklist with users (Owner)
-            update_tasklist(tasklist, %{deleted: true})
-          true ->
-            from(r in TasklistUser, where: r.user_id == ^user_id, where: r.tasklist_id == ^tasklist.id) |> Repo.delete_all
-            if Repo.all(from(u in TasklistUser, where: u.tasklist_id == ^tasklist.id)) == [] and tasklist.deleted do
-              delete_tasklist(tasklist)
-            end
+    tasklist = (tasklist |> Repo.preload([:user, :users]))
+    cond do
+      tasklist.users == [] and user_id == tasklist.user_id -> # Tasklist without users (Owner)
+        delete_tasklist(tasklist)
+      user_id == tasklist.user_id -> # Tasklist with users (Owner)
+        update_tasklist(tasklist, %{deleted: true})
+      true ->
+        from(r in TasklistUser, where: r.user_id == ^user_id, where: r.tasklist_id == ^tasklist.id) |> Repo.delete_all
+        
+        if Repo.all(from(u in TasklistUser, where: u.tasklist_id == ^tasklist.id)) == [] and tasklist.deleted do
+          delete_tasklist(tasklist)
+        else
+          tasklist = Repo.preload tasklist, :users, force: true
+          {:ok, tasklist}
         end
+    end
   end
 
   # def delete_tasklist(%Tasklist{} = tasklist, user_id) when is_integer(user_id) do
@@ -160,17 +210,62 @@ defmodule Erlnote.Tasks do
   # end
 
   # Para unlink usar la función delete_tasklist.
-  def link_tasklist_to_user(tasklist_id, user_id, can_read, can_write) when is_integer(tasklist_id) and is_integer(user_id) do
-    user = Accounts.get_user_by_id(user_id)
-    tasklist = get_tasklist(tasklist_id)
-    cond do
-      is_nil(user) or is_nil(tasklist) -> {:error, "user ID or tasklist ID not found."}
-      (tasklist |> Repo.preload(:user)).user.id == user_id -> {:ok, "linked"}
-      true ->
-        Repo.insert(
-          TasklistUser.changeset(%TasklistUser{}, %{tasklist_id: tasklist.id, user_id: user.id, can_read: can_read, can_write: can_write})
-        )
-        # Return {:ok, _} o {:error, changeset}
+  # def link_tasklist_to_user(tasklist_id, user_id, can_read, can_write) when is_integer(tasklist_id) and is_integer(user_id) do
+  #   user = Accounts.get_user_by_id(user_id)
+  #   tasklist = get_tasklist(tasklist_id)
+  #   cond do
+  #     is_nil(user) or is_nil(tasklist) -> {:error, "user ID or tasklist ID not found."}
+  #     (tasklist |> Repo.preload(:user)).user.id == user_id -> {:ok, "linked"}
+  #     true ->
+  #       Repo.insert(
+  #         TasklistUser.changeset(%TasklistUser{}, %{tasklist_id: tasklist.id, user_id: user.id, can_read: can_read, can_write: can_write})
+  #       )
+  #       # Return {:ok, _} o {:error, changeset}
+  #   end
+  # end
+
+  # Para unlink usar la función delete_tasklist.
+  @doc """
+  Adds user_id as a contributor on the tasklist.
+
+  ## Examples
+
+      iex> link_tasklist_to_user(owner_id, tasklist_id, user_id, can_read, can_write)
+      {:ok, %TasklistUser{}}
+
+      iex> link_tasklist_to_user(no_owner_id, tasklist_id, user_id, can_read, can_write)
+      {:error, "Permission denied."}
+
+      iex> link_tasklist_to_user(owner_id, bad_tasklist_id, user_id, can_read, can_write)
+      {:error, "User ID or tasklist ID not found."}
+
+      iex> link_tasklist_to_user(owner_id, tasklist_id, bad_user_id, can_read, can_write)
+      {:error, "User ID or tasklist ID not found."}
+
+  """
+  def link_tasklist_to_user(owner_id, tasklist_id, user_id, can_read, can_write)
+    when is_integer(owner_id)
+    and is_integer(tasklist_id)
+    and is_integer(user_id)
+    and is_boolean(can_read)
+    and is_boolean(can_write) do
+
+    with(
+      user when not is_nil(user) <- Accounts.get_user_by_id(user_id),
+      tasklist when not is_nil(tasklist) <- Repo.preload(get_tasklist(tasklist_id), :user),
+      true <- tasklist.user.id == owner_id
+    ) do
+      cond do
+        tasklist.user.id == user_id -> {:ok, "linked"}
+        true ->
+          Repo.insert(
+            TasklistUser.changeset(%TasklistUser{}, %{tasklist_id: tasklist.id, user_id: user.id, can_read: can_read, can_write: can_write})
+          )
+          # Return {:ok, _} o {:error, changeset}
+      end
+    else
+      nil -> {:error, "User ID or tasklist ID not found."}
+      false -> {:error, "Permission denied."}
     end
   end
 
@@ -210,19 +305,37 @@ defmodule Erlnote.Tasks do
       set_tasklist_user_permissions(user_id, tasklist_id, :can_write, can_write)
   end
 
+  # defp can_read_or_write?(user_id, tasklist_id) do
+  #   case tl = (get_tasklist(tasklist_id) |> Repo.preload(:user)) do
+  #     nil -> {false, false}
+  #     _ ->
+  #       cond do
+  #         user_id == tl.user.id -> {true, true}
+  #         true ->
+  #           record = Repo.one(from r in TasklistUser, where: r.tasklist_id == ^tl.id, where: r.user_id == ^user_id)
+  #           not_is_nil_record = not is_nil(record)
+  #           {
+  #             not_is_nil_record and record.can_read == true,
+  #             not_is_nil_record and record.can_write == true
+  #           }
+  #       end
+  #   end
+  # end
+
   defp can_read_or_write?(user_id, tasklist_id) do
-    case tl = (get_tasklist(tasklist_id) |> Repo.preload(:user)) do
+    case t = (get_tasklist(tasklist_id) |> Repo.preload(:user)) do
       nil -> {false, false}
       _ ->
         cond do
-          user_id == tl.user.id -> {true, true}
+          user_id == t.user.id -> {true, true}
           true ->
-            record = Repo.one(from r in TasklistUser, where: r.tasklist_id == ^tl.id, where: r.user_id == ^user_id)
-            not_is_nil_record = not is_nil(record)
-            {
-              not_is_nil_record and record.can_read == true,
-              not_is_nil_record and record.can_write == true
-            }
+            record = Repo.one(from r in TasklistUser, where: r.tasklist_id == ^t.id, where: r.user_id == ^user_id)
+            if is_nil(record) do
+              {false, false}
+            else
+              # can_read & can_write values: true, false or nil.
+              {record.can_read == true, record.can_write == true}
+            end
         end
     end
   end

@@ -29,7 +29,7 @@ defmodule Erlnote.Tasks.Tasklist do
   def update_changeset(tasklist, params) do
     tasklist
     |> cast(params, [:deleted, :title])
-    |> validate_inclusion(:deleted, [true, false])
+    |> validate_required([:deleted])
     |> validate_length(:title, min: @min_title_len, max: @max_title_len)
   end
 

@@ -152,6 +152,7 @@ defmodule Erlnote.NotesTest do
       assert n.title == @update_attrs.title
       assert n.deleted == @update_attrs.deleted
       assert n.id == note.id
+      assert (from r in Note, where: r.id == ^note.id) |> Repo.one == n
     end
 
     test "update_note/3 with invalid data returns error changeset" do
@@ -236,7 +237,7 @@ defmodule Erlnote.NotesTest do
       assert target_note.users == []
       assert {:error, "User ID or note ID not found."} = Notes.link_note_to_user(target_note.user.id, @bad_id, collaborator_id, true, true)
       assert Enum.find(Notes.list_is_collaborator_notes(collaborator_id), [], fn x -> x.id == target_note.id end) == []
-      assert Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id) == nil
+      assert is_nil(Repo.one(from nu in NoteUser, where: nu.user_id == ^collaborator_id and nu.note_id == ^target_note.id))
     end
 
     test "link_note_to_user/5 with invalid user ID returns a error" do
