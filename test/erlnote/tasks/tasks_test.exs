@@ -48,8 +48,8 @@ defmodule Erlnote.TasksTest do
       }
     ]
 
-    # @valid_attrs %{description: "some description", end_datetime: "2010-04-17T14:00:00Z", name: "some name", priority: "some priority", start_datetime: "2010-04-17T14:00:00Z", state: "some state"}
-    # @update_attrs %{description: "some updated description", end_datetime: "2011-05-18T15:01:01Z", name: "some updated name", priority: "some updated priority", start_datetime: "2011-05-18T15:01:01Z", state: "some updated state"}
+    @valid_task_attrs %{description: "some description", end_datetime: "2010-04-17T18:00:00Z", name: "task one", priority: "LOW", start_datetime: "2010-04-17T14:00:00Z", state: "INPROGRESS"}
+    @update_task_attrs %{description: "some updated description", end_datetime: "2011-05-18T15:01:01Z", name: "task two", priority: "NORMAL", start_datetime: "2011-05-18T14:01:01Z", state: "FINISHED"}
     # @invalid_attrs %{description: nil, end_datetime: nil, name: nil, priority: nil, start_datetime: nil, state: nil}
 
     @valid_attrs %{deleted: false, title: "White list"}
@@ -448,61 +448,141 @@ defmodule Erlnote.TasksTest do
       assert Tasks.can_read?(@bad_id, target_tasklist.id) == false
       assert Tasks.can_read?(collaborator_id, @bad_id) == false
     end
-    # test "list_tasks/0 returns all tasks" do
-    #   task = task_fixture()
-    #   assert Tasks.list_tasks() == [task]
-    # end
 
-    # test "get_task!/1 returns the task with given id" do
-    #   task = task_fixture()
-    #   assert Tasks.get_task!(task.id) == task
-    # end
+    test "get_tags_from_tasklist/1 lists all the associated tags (tasklist with tags)" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+      [tag_name_x | tail] = @valid_tag_name_list
+      [tag_name_y | _] = tail
 
-    # test "create_task/1 with valid data creates a task" do
-    #   assert {:ok, %Task{} = task} = Tasks.create_task(@valid_attrs)
-    #   assert task.description == "some description"
-    #   assert task.end_datetime == DateTime.from_naive!(~N[2010-04-17T14:00:00Z], "Etc/UTC")
-    #   assert task.name == "some name"
-    #   assert task.priority == "some priority"
-    #   assert task.start_datetime == DateTime.from_naive!(~N[2010-04-17T14:00:00Z], "Etc/UTC")
-    #   assert task.state == "some state"
-    # end
+      {:ok, %TasklistTag{}} = Tasks.link_tag_to_tasklist(target_tasklist.id, target_tasklist.user.id, tag_name_x)
+      {:ok, %TasklistTag{}} = Tasks.link_tag_to_tasklist(target_tasklist.id, target_tasklist.user.id, tag_name_y)
+      tag_list = Tasks.get_tags_from_tasklist(target_tasklist.id)
+      assert length(tag_list) == 2
+      tn1 = List.first(tag_list).name
+      tn2 = List.last(tag_list).name
+      assert tag_name_x == tn1 or tag_name_x == tn2
+      assert tag_name_y == tn1 or tag_name_y == tn2
+    end
 
-    # test "create_task/1 with invalid data returns error changeset" do
-    #   assert {:error, %Ecto.Changeset{}} = Tasks.create_task(@invalid_attrs)
-    # end
+    test "get_tags_from_tasklist/1 returns empty list (tasklist without tags)" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :tags)
+      
+      assert target_tasklist.tags == []
+      assert Tasks.get_tags_from_tasklist(target_tasklist.id) == []
+    end
 
-    # test "update_task/2 with valid data updates the task" do
-    #   task = task_fixture()
-    #   assert {:ok, %Task{} = task} = Tasks.update_task(task, @update_attrs)
-    #   assert task.description == "some updated description"
-    #   assert task.end_datetime == DateTime.from_naive!(~N[2011-05-18T15:01:01Z], "Etc/UTC")
-    #   assert task.name == "some updated name"
-    #   assert task.priority == "some updated priority"
-    #   assert task.start_datetime == DateTime.from_naive!(~N[2011-05-18T15:01:01Z], "Etc/UTC")
-    #   assert task.state == "some updated state"
-    # end
+    test "get_tags_from_tasklist/1 with invalid tasklist ID returns empty list" do
+      assert Tasks.get_tags_from_tasklist(@bad_id) == []
+    end
 
-    # test "update_task/2 with invalid data returns error changeset" do
-    #   task = task_fixture()
-    #   assert {:error, %Ecto.Changeset{}} = Tasks.update_task(task, @invalid_attrs)
-    #   assert task == Tasks.get_task!(task.id)
-    # end
+    test "link_tag_to_tasklist/3 with valid data creates assoc(tasklist, tag)" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, [:user, :tags])
+      
+      assert target_tasklist.tags == []
+      assert {:ok, %TasklistTag{} = tt} = Tasks.link_tag_to_tasklist(target_tasklist.id, target_tasklist.user.id, @valid_tag_name)
+      assert tt.tasklist_id == target_tasklist.id
+      (%Tag{} = t) = Tags.get_tag_by_name(@valid_tag_name)
+      assert tt.tag_id == t.id
+      assert not is_nil(Repo.one(from r in assoc(target_tasklist, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name))
+    end
 
-    # test "delete_task/1 deletes the task" do
-    #   task = task_fixture()
-    #   assert {:ok, %Task{}} = Tasks.delete_task(task)
-    #   assert_raise Ecto.NoResultsError, fn -> Tasks.get_task!(task.id) end
-    # end
+    test "link_tag_to_tasklist/3 with duplicated tag name does nothing" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, [:user, :tags])
+      
+      assert target_tasklist.tags == []
+      assert {:ok, %TasklistTag{} = tt} = Tasks.link_tag_to_tasklist(target_tasklist.id, target_tasklist.user.id, @valid_tag_name)
+      assert {:ok, msg} = Tasks.link_tag_to_tasklist(target_tasklist.id, target_tasklist.user.id, @valid_tag_name)
+      assert is_binary msg
+      assert tt.tasklist_id == target_tasklist.id
+      (%Tag{} = t) = Tags.get_tag_by_name(@valid_tag_name)
+      assert tt.tag_id == t.id
+      assert not is_nil(Repo.one(from r in assoc(target_tasklist, :tags), where: r.id == ^t.id and r.name == ^@valid_tag_name))
+    end
 
-    # test "change_task/1 returns a task changeset" do
-    #   task = task_fixture()
-    #   assert %Ecto.Changeset{} = Tasks.change_task(task)
-    # end
+    test "link_tag_to_tasklist/3 with invalid note ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+      
+      assert {:error, msg} = Tasks.link_tag_to_tasklist(@bad_id, target_tasklist.user.id, @valid_tag_name)
+    end
 
+    test "link_tag_to_tasklist/3 with invalid user ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, [:user, :tags])
+      
+      assert target_tasklist.tags == []
+      assert {:error, msg} = Tasks.link_tag_to_tasklist(target_tasklist.id, @bad_id, @valid_tag_name)
+      assert Repo.all(from r in TasklistTag, where: r.tasklist_id == ^target_tasklist.id and r.tag_id == ^@bad_id) == []
+    end
 
+    test "remove_tag_from_tasklist/3 with valid data breaks assoc(tasklist, tag)" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+      
+      {:ok, %TasklistTag{}} = Tasks.link_tag_to_tasklist(target_tasklist.id, target_tasklist.user.id, @valid_tag_name)
+      assert not is_nil(Enum.find(Tasks.get_tags_from_tasklist(target_tasklist.id), fn t -> @valid_tag_name == t.name end))
+      %{remove_tag_from_tasklist: {1, nil}, delete_tag: {:ok, %Tag{}}} = Tasks.remove_tag_from_tasklist(target_tasklist.id, target_tasklist.user.id, @valid_tag_name)
+      assert is_nil(Enum.find(Tasks.get_tags_from_tasklist(target_tasklist.id), fn t -> @valid_tag_name == t.name end))
+    end
 
+    test "remove_tag_from_tasklist/3 with valid data breaks assoc(tasklist, tag). (tag_name_in_use_by_other_entities)" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | other_tasklists] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+      [target_tasklist2 | _] = other_tasklists
+      target_tasklist2 = Repo.preload(target_tasklist2, :user)
+      
+      {:ok, %TasklistTag{}} = Tasks.link_tag_to_tasklist(target_tasklist.id, target_tasklist.user.id, @valid_tag_name)
+      {:ok, %TasklistTag{}} = Tasks.link_tag_to_tasklist(target_tasklist2.id, target_tasklist2.user.id, @valid_tag_name)
+      assert not is_nil(Enum.find(Tasks.get_tags_from_tasklist(target_tasklist.id), fn t -> @valid_tag_name == t.name end))
+      assert not is_nil(Enum.find(Tasks.get_tags_from_tasklist(target_tasklist2.id), fn t -> @valid_tag_name == t.name end))
+      %{remove_tag_from_tasklist: {1, nil}, delete_tag: {:error, _}} = Tasks.remove_tag_from_tasklist(target_tasklist.id, target_tasklist.user.id, @valid_tag_name)
+      assert is_nil(Enum.find(Tasks.get_tags_from_tasklist(target_tasklist.id), fn t -> @valid_tag_name == t.name end))
+      assert not is_nil(Enum.find(Tasks.get_tags_from_tasklist(target_tasklist2.id), fn t -> @valid_tag_name == t.name end))
+    end
 
+    test "remove_tag_from_tasklist/3 with invalid tasklist ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+      
+      assert {:error, _} = Tasks.remove_tag_from_tasklist(@bad_id, target_tasklist.user.id, @valid_tag_name)
+    end
+
+    test "remove_tag_from_tasklist/3 with invalid user ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+      
+      {:ok, %TasklistTag{}} = Tasks.link_tag_to_tasklist(target_tasklist.id, target_tasklist.user.id, @valid_tag_name)
+      assert not is_nil(Enum.find(Tasks.get_tags_from_tasklist(target_tasklist.id), fn t -> @valid_tag_name == t.name end))
+      {:error, _} = Tasks.remove_tag_from_tasklist(target_tasklist.id, @bad_id, @valid_tag_name)
+    end
+    
+    test "list_tasks_from_tasklist/1 with valid tasklist ID returns all tasks in the list" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == []
+      {:ok, %Task{} = t1} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      {:ok, %Task{} = t2} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @update_task_attrs)
+      {task1, task2} = Tasks.list_tasks_from_tasklist(target_tasklist.id) |> List.pop_at(0)
+      {task2, _} = List.pop_at(task2, 0)
+      assert t1 == task1 or t1 == task2
+      assert t2 == task1 or t2 == task2
+    end
 
   end
 end

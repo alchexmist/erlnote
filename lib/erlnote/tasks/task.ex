@@ -4,8 +4,8 @@ defmodule Erlnote.Tasks.Task do
 
   alias Erlnote.Tasks.Tasklist
 
-  @task_state  ~w[INPROGRESS, FINISHED]
-  @task_priority  ~w[LOW, NORMAL, HIGH]
+  @task_state  ~w[INPROGRESS FINISHED]
+  @task_priority  ~w[LOW NORMAL HIGH]
   @max_len_name  255
   @min_len_name 1
 

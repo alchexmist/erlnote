@@ -295,32 +295,45 @@ defmodule Erlnote.Tasks do
       end
   end
 
+  @doc """
+  Enables/Disables read permission for a (contributor, tasklist).
+
+  ## Examples
+
+      iex> set_can_read_from_tasklist(user_id, tasklist_id, boolean)
+      {:ok, %TasklistUser{}}
+
+      iex> set_can_read_from_tasklist(bad_user_id, tasklist_id, boolean)
+      {:error, _}
+
+      iex> set_can_read_from_tasklist(user_id, bad_tasklist_id, boolean)
+      {:error, _}
+
+  """
   def set_can_read_from_tasklist(user_id, tasklist_id, can_read)
     when is_integer(user_id) and is_integer(tasklist_id) and is_boolean(can_read) do
       set_tasklist_user_permissions(user_id, tasklist_id, :can_read, can_read)
   end
 
+  @doc """
+  Enables/Disables write permission for a (contributor, tasklist).
+
+  ## Examples
+
+      iex> set_can_write_to_tasklist(user_id, tasklist_id, boolean)
+      {:ok, %TasklistUser{}}
+
+      iex> set_can_write_to_tasklist(bad_user_id, tasklist_id, boolean)
+      {:error, _}
+
+      iex> set_can_write_to_tasklist(user_id, bad_tasklist_id, boolean)
+      {:error, _}
+
+  """
   def set_can_write_to_tasklist(user_id, tasklist_id, can_write)
     when is_integer(user_id) and is_integer(tasklist_id) and is_boolean(can_write) do
       set_tasklist_user_permissions(user_id, tasklist_id, :can_write, can_write)
   end
-
-  # defp can_read_or_write?(user_id, tasklist_id) do
-  #   case tl = (get_tasklist(tasklist_id) |> Repo.preload(:user)) do
-  #     nil -> {false, false}
-  #     _ ->
-  #       cond do
-  #         user_id == tl.user.id -> {true, true}
-  #         true ->
-  #           record = Repo.one(from r in TasklistUser, where: r.tasklist_id == ^tl.id, where: r.user_id == ^user_id)
-  #           not_is_nil_record = not is_nil(record)
-  #           {
-  #             not_is_nil_record and record.can_read == true,
-  #             not_is_nil_record and record.can_write == true
-  #           }
-  #       end
-  #   end
-  # end
 
   defp can_read_or_write?(user_id, tasklist_id) do
     case t = (get_tasklist(tasklist_id) |> Repo.preload(:user)) do
@@ -340,19 +353,61 @@ defmodule Erlnote.Tasks do
     end
   end
 
+  @doc """
+  Checks if tasklist can be written by the contributor.
+
+  ## Examples
+
+      iex> can_write?(user_id, tasklist_id)
+      true
+
+      iex> can_write?(bad_user_id, tasklist_id)
+      {false, false}
+
+      iex> can_write?(user_id, bad_tasklist_id)
+      {false, false}
+
+  """
   def can_write?(user_id, tasklist_id) do
     Kernel.elem(can_read_or_write?(user_id, tasklist_id), 1)
   end
 
+  @doc """
+  Checks if tasklist can be read by the contributor.
+
+  ## Examples
+
+      iex> can_read?(user_id, tasklist_id)
+      true
+
+      iex> can_read?(bad_user_id, tasklist_id)
+      {false, false}
+
+      iex> can_read?(user_id, bad_tasklist_id)
+      {false, false}
+
+  """
   def can_read?(user_id, tasklist_id) do
     Kernel.elem(can_read_or_write?(user_id, tasklist_id), 0)
   end
 
+  @doc """
+  Lists all tasks in the list.
+
+  ## Examples
+
+      iex> list_tasks_from_tasklist(valid_tasklist_id)
+      [%Task{}]
+
+      iex> list_tasks_from_tasklist(bad_tasklist_id)
+      {:error, "Tasklist ID not found."}
+
+  """
   def list_tasks_from_tasklist(tasklist_id) when is_integer(tasklist_id) do
     case tl = get_tasklist(tasklist_id) do
       nil -> {:error, "Tasklist ID not found."}
-      _ ->
-        (tl |> Repo.preload(:tasks)).tasks
+      _ -> (from t in assoc(tl, :tasks)) |> Repo.all
+        #(tl |> Repo.preload(:tasks)).tasks
     end
   end
 
@@ -407,10 +462,47 @@ defmodule Erlnote.Tasks do
 
   end
 
+  @doc """
+  Lists all tags associated with a tasklist.
+
+  ## Examples
+
+      iex> get_tags_from_tasklist(tasklist_id)
+      [%Tag{}]
+
+      iex> get_tags_from_tasklist(tasklist_without_tags_id)
+      []
+
+      iex> get_tags_from_tasklist(bad_tasklist_id)
+      []
+
+  """
   def get_tags_from_tasklist(tasklist_id) when is_integer(tasklist_id) do
-    Repo.all(from r in (get_tasklist(tasklist_id) |> Repo.preload(:tags) |> assoc(:tags)))
+    with t when not is_nil(t) <- get_tasklist(tasklist_id) do
+      (from r in assoc(t, :tags)) |> Repo.all
+    else
+      nil -> []
+    end
   end
 
+  @doc """
+  Creates assoc(tasklist, tag).
+
+  ## Examples
+
+      iex> link_tag_to_tasklist(tasklist_id, user_id, tag_name)
+      {:ok, %TasklistTag{}}
+
+      iex> link_tag_to_tasklist(tasklist_id, user_id, duplicated_tag_name)
+      {:ok, "linked"}
+
+      iex> link_tag_to_tasklist(bad_tasklist_id, user_id, tag_name)
+      {:error, "Tasklist ID not found."}
+
+      iex> link_tag_to_tasklist(tasklist_id, bad_user_id, tag_name)
+      {:error, "Write permission: Disabled."}
+
+  """
   def link_tag_to_tasklist(tasklist_id, user_id, tag_name)
     when is_integer(tasklist_id) and is_integer(user_id) and is_binary(tag_name) do
 
@@ -437,6 +529,27 @@ defmodule Erlnote.Tasks do
     end
   end
 
+  @doc """
+  Deletes assoc(tasklist, tag).
+
+  ## Examples
+
+      iex> remove_tag_from_tasklist(tasklist_id, user_id, tag_name_not_in_use_anymore)
+      %{remove_tag_from_tasklist: {1, nil}, delete_tag: {:ok, %Tag{}}}
+
+      iex> remove_tag_from_tasklist(tasklist_id, user_id, tag_name_in_use_by_other_entities)
+      %{remove_tag_from_tasklist: {1, nil}, delete_tag: {:error, msg_string}}
+
+      iex> remove_tag_from_tasklist(tasklist_id, user_id, nonexistent_tag_name)
+      :ok
+
+      iex> remove_tag_from_tasklist(bad_tasklist_id, user_id, tag_name)
+      {:error, "Tasklist ID not found."}
+
+      iex> remove_tag_from_tasklist(tasklist_id, bad_user_id, tag_name)
+      {:error, "Write permission: Disabled."}
+
+  """
   def remove_tag_from_tasklist(tasklist_id, user_id, tag_name)
     when is_integer(tasklist_id) and is_integer(user_id) and is_binary(tag_name) do
     
