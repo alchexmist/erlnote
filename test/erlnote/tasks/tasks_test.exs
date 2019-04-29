@@ -576,10 +576,11 @@ defmodule Erlnote.TasksTest do
       target_tasklist = Repo.preload(target_tasklist, :user)
 
       assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == []
-      {:ok, %Task{} = t1} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
-      {:ok, %Task{} = t2} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @update_task_attrs)
-      {task1, task2} = Tasks.list_tasks_from_tasklist(target_tasklist.id) |> List.pop_at(0)
-      {task2, _} = List.pop_at(task2, 0)
+      f = fn x -> Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, x) end
+      {:ok, %Task{} = t1} = f.(@valid_task_attrs)
+      {:ok, %Task{} = t2} = f.(@update_task_attrs)
+      [task1 | task2] = Tasks.list_tasks_from_tasklist(target_tasklist.id)
+      [task2 | _] = task2
       assert t1 == task1 or t1 == task2
       assert t2 == task1 or t2 == task2
     end
