@@ -50,9 +50,9 @@ defmodule Erlnote.TasksTest do
 
     @valid_task_attrs %{description: "some description", end_datetime: "2010-04-17T18:00:00Z", name: "task one", priority: "LOW", start_datetime: "2010-04-17T14:00:00Z", state: "INPROGRESS"}
     @update_task_attrs %{description: "some updated description", end_datetime: "2011-05-18T15:01:01Z", name: "task two", priority: "NORMAL", start_datetime: "2011-05-18T14:01:01Z", state: "FINISHED"}
-    # @invalid_attrs %{description: nil, end_datetime: nil, name: nil, priority: nil, start_datetime: nil, state: nil}
+    @invalid_task_attrs %{description: nil, end_datetime: nil, name: "task two", priority: "LOGIC BOMB", start_datetime: nil, state: "LOGIC BOMB"}
 
-    @valid_attrs %{deleted: false, title: "White list"}
+    #@valid_attrs %{deleted: false, title: "White list"}
     @update_attrs %{deleted: false, title: "Black list"}
     @invalid_attrs %{deleted: "XFree86", title: "White list"}
 
@@ -583,6 +583,183 @@ defmodule Erlnote.TasksTest do
       [task2 | _] = task2
       assert t1 == task1 or t1 == task2
       assert t2 == task1 or t2 == task2
+    end
+
+    test "get_task_from_tasklist/3 with valid data gets a single task" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      assert t == Tasks.get_task_from_tasklist(target_tasklist.user.id, target_tasklist.id, t.id)
+    end
+
+    test "get_task_from_tasklist/3 with invalid user ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      assert {:error, msg} = Tasks.get_task_from_tasklist(@bad_id, target_tasklist.id, t.id)
+    end
+
+    test "get_task_from_tasklist/3 with invalid tasklist ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+      
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      assert {:error, msg} = Tasks.get_task_from_tasklist(target_tasklist.user.id, @bad_id, t.id)
+    end
+
+    test "get_task_from_tasklist/3 with invalid task ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+      
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      assert {:error, msg} = Tasks.get_task_from_tasklist(target_tasklist.user.id, target_tasklist.id, @bad_id)
+    end
+
+    test "update_task_in_tasklist/3 with valid data updates a task" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      {:ok, %Task{} = ut} = Tasks.update_task_in_tasklist(target_tasklist.user.id, target_tasklist.id, Map.put(@update_task_attrs, :id, t.id))
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [ut]
+      assert ut.id == t.id
+    end
+
+    test "update_task_in_tasklist/3 with invalid task data returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      {:error, %Ecto.Changeset{}} = Tasks.update_task_in_tasklist(target_tasklist.user.id, target_tasklist.id, Map.put(@invalid_task_attrs, :id, t.id))
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+    end
+
+    test "update_task_in_tasklist/3 with invalid user ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      {:error, _} = Tasks.update_task_in_tasklist(@bad_id, target_tasklist.id, Map.put(@update_task_attrs, :id, t.id))
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+    end
+
+    test "update_task_in_tasklist/3 with invalid tasklist ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      {:error, _} = Tasks.update_task_in_tasklist(target_tasklist.user.id, @bad_id, Map.put(@update_task_attrs, :id, t.id))
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+    end
+
+    test "delete_task_from_tasklist/3 with valid data updates a task" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      {:ok, %Task{} = dt} = Tasks.delete_task_from_tasklist(target_tasklist.user.id, target_tasklist.id, t.id)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == []
+      assert dt |> Map.delete(:__meta__) == t |> Map.delete(:__meta__)
+    end
+
+    test "delete_task_from_tasklist/3 with invalid task ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      {:error, _} = Tasks.delete_task_from_tasklist(target_tasklist.user.id, target_tasklist.id, @bad_id)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+    end
+
+    test "delete_task_from_tasklist/3 with invalid user ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      {:error, _} = Tasks.delete_task_from_tasklist(@bad_id, target_tasklist.id, t.id)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+    end
+
+    test "delete_task_from_tasklist/3 with invalid tasklist ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      {:error, _} = Tasks.delete_task_from_tasklist(target_tasklist.user.id, @bad_id, t.id)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+    end
+
+    test "add_task_to_tasklist/3 with valid data adds a task" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == []
+      {:ok, %Task{} = t} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == [t]
+      assert @valid_task_attrs.state == t.state
+      assert @valid_task_attrs.priority == t.priority
+      assert @valid_task_attrs.name == t.name
+      assert @valid_task_attrs.description == t.description
+      assert @valid_task_attrs.start_datetime == DateTime.to_iso8601(t.start_datetime)
+      assert @valid_task_attrs.end_datetime == DateTime.to_iso8601(t.end_datetime)
+      assert is_integer(t.id)
+    end
+
+    test "add_task_to_tasklist/3 with invalid task data returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == []
+      {:error, %Ecto.Changeset{}} = Tasks.add_task_to_tasklist(target_tasklist.user.id, target_tasklist.id, @invalid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == []
+    end
+
+    test "add_task_to_tasklist/3 with invalid user ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == []
+      {:error, _} = Tasks.add_task_to_tasklist(@bad_id, target_tasklist.id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == []
+    end
+
+    test "add_task_to_tasklist/3 with invalid tasklist ID returns error" do
+      {_, tasklists} = task_fixture()
+      [target_tasklist | _] = tasklists
+      target_tasklist = Repo.preload(target_tasklist, :user)
+
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == []
+      {:error, _} = Tasks.add_task_to_tasklist(target_tasklist.user.id, @bad_id, @valid_task_attrs)
+      assert Tasks.list_tasks_from_tasklist(target_tasklist.id) == []
     end
 
   end

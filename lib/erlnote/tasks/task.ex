@@ -24,7 +24,8 @@ defmodule Erlnote.Tasks.Task do
   @doc false
   def update_changeset(task, attrs) do
     task
-    |> cast(attrs, [:state, :description, :start_datetime, :end_datetime, :priority, :name])
+    |> cast(attrs, [:state, :description, :start_datetime, :end_datetime, :priority, :name, :id])
+    |> validate_required([:state, :priority, :name, :id])
     |> validate_length(:name, min: @min_len_name, max: @max_len_name)
     |> validate_inclusion(:state, @task_state)
     |> validate_inclusion(:priority, @task_priority)
@@ -34,8 +35,12 @@ defmodule Erlnote.Tasks.Task do
   @doc false
   def create_changeset(task, attrs) do
     task
-    |> update_changeset(attrs)
+    |> cast(attrs, [:state, :description, :start_datetime, :end_datetime, :priority, :name, :id])
     |> validate_required([:state, :priority, :name])
+    |> validate_length(:name, min: @min_len_name, max: @max_len_name)
+    |> validate_inclusion(:state, @task_state)
+    |> validate_inclusion(:priority, @task_priority)
+    |> validate_end_date_gt_start_date()
   end
 
   @doc false

@@ -411,42 +411,118 @@ defmodule Erlnote.Tasks do
     end
   end
 
-  def get_task_from_tasklist(user_id, tasklist_id, task_id) do
-    if can_read?(user_id, tasklist_id) do
-      tl = (get_tasklist(tasklist_id) |> Repo.preload(:tasks))
-      case q = ((from r in assoc(tl, :tasks), where: r.id == ^task_id) |> Repo.one) do
-        nil -> {:error, "Task not found."}
-        _ -> q
-      end
-    else
+  @doc """
+  Gets a single task.
+
+  Returns error if the task does not exist.
+
+  ## Examples
+
+      iex> get_task_from_tasklist(user_id, tasklist_id, task_id)
+      %Task{}
+
+      iex> get_task_from_tasklist(bad_user_id, tasklist_id, task_id)
       {:error, "Permission denied (read)."}
+
+      iex> get_task_from_tasklist(user_id, bad_tasklist_id, task_id)
+      {:error, "Permission denied (read)."}
+
+      iex> get_task_from_tasklist(user_id, tasklist_id, bad_task_id)
+      {:error, "Task not found."}
+
+  """
+  def get_task_from_tasklist(user_id, tasklist_id, task_id) do
+    with(
+      true <- can_read?(user_id, tasklist_id),
+      q when not is_nil(q) <- ((from r in assoc(get_tasklist(tasklist_id), :tasks), where: r.id == ^task_id) |> Repo.one)
+    ) do
+      q
+    else
+      false -> {:error, "Permission denied (read)."}
+      nil -> {:error, "Task not found."}
     end
   end
 
   # changes: Es un map que debe incluir una clave con el id de la tarea.
   # Tasks.update_task_in_tasklist(1, 5, %{id: 1, name: "Tarea número 1"})
-  def update_task_in_tasklist(user_id, tasklist_id, changes) do
-    if can_write?(user_id, tasklist_id) and Map.has_key?(changes, :id) do
-      case t = get_task_from_tasklist(user_id, tasklist_id, changes.id) do
-        {:error, _ } -> t
-        _ -> t |> Task.update_changeset(changes) |> Repo.update
-      end
+  @doc """
+  Updates a task.
+
+  ## Examples
+
+      iex> update_task_in_tasklist(1, 1, %{field: new_value})
+      {:ok, %Task{}}
+
+      iex> update_task_in_tasklist(1, 1, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+      iex> update_task_in_tasklist(1, -1, %{field: new_value})
+      {:error, "Permission denied."}
+
+      iex> update_task_in_tasklist(-1, 1, %{field: new_value})
+      {:error, "Permission denied."}
+
+  """
+  def update_task_in_tasklist(user_id, tasklist_id, changes) when is_integer(user_id) and is_integer(tasklist_id) and is_map(changes) do
+    with(
+      true <- can_write?(user_id, tasklist_id) and Map.has_key?(changes, :id),
+      (%Task{} = t) <- get_task_from_tasklist(user_id, tasklist_id, changes.id)
+    ) do
+        t |> Task.update_changeset(changes) |> Repo.update
     else
-      {:error, "Permission denied (write) or Task ID not found (changes map)."}
+      false -> {:error, "Permission denied (write) or Task ID not found (changes map)."}
+      error_tuple -> error_tuple
     end  
   end
 
+  @doc """
+  Deletes a task.
+
+  ## Examples
+
+      iex> delete_task_from_tasklist(1, 1, 1)
+      {:ok, %Task{}}
+
+      iex> delete_task_from_tasklist(1, 1, -1)
+      {:error, msg}
+
+      iex> delete_task_from_tasklist(-1, 1, 1)
+      {:error, "Permission denied."}
+
+      iex> delete_task_from_tasklist(1, -1, 1)
+      {:error, "Permission denied."}
+
+  """
   def delete_task_from_tasklist(user_id, tasklist_id, task_id) do
-    if can_write?(user_id, tasklist_id) do
-      case t = get_task_from_tasklist(user_id, tasklist_id, task_id) do
-        {:error, _ } -> t
-        _ -> t |> Repo.delete
-      end
+    with(
+      true <- can_write?(user_id, tasklist_id),
+      (%Task{} = t) <- get_task_from_tasklist(user_id, tasklist_id, task_id)
+    ) do
+        t |> Repo.delete
     else
-      {:error, "Permission denied (write)."}
+      false -> {:error, "Permission denied (write)."}
+      error_tuple -> error_tuple
     end
   end
 
+  @doc """
+  Adds a task.
+
+  ## Examples
+
+      iex> add_task_to_tasklist(1, 1, %{field: new_value})
+      {:ok, %Task{}}
+
+      iex> add_task_to_tasklist(1, 1, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+      iex> add_task_to_tasklist(-1, 1, %{field: new_value})
+      {:error, "Permission denied."}
+
+      iex> add_task_to_tasklist(1, -1, 1)
+      {:error, "Permission denied."}
+
+  """
   def add_task_to_tasklist(user_id, tasklist_id, task)
     when is_integer(user_id) and is_integer(tasklist_id) and is_map(task) do
       case can_write?(user_id, tasklist_id) do
@@ -459,7 +535,6 @@ defmodule Erlnote.Tasks do
           |> Repo.insert()
         _ -> {:error, "Permission denied."}
       end
-
   end
 
   @doc """
