@@ -16,7 +16,8 @@ alias Erlnote.Boards
 alias Erlnote.Boards.Board
 alias Erlnote.Tasks
 alias Erlnote.Tasks.Tasklist
-
+alias Erlnote.Notes
+alias Erlnote.Notes.{Note, Notepad}
 
 user1 = Repo.insert!(
     User.registration_changeset(
@@ -147,3 +148,29 @@ tag4 = Repo.insert!(
 {:ok, _} = Tasks.add_task_to_tasklist(user3.id, tasklist3.id, %{description: "Descripción Uno", end_datetime: "2016-04-17T18:00:00Z", name: "Tarea 1 Lista 3", priority: "LOW", start_datetime: "2016-04-17T14:00:00Z", state: "INPROGRESS"})
 {:ok, _} = Tasks.add_task_to_tasklist(user3.id, tasklist3.id, %{description: "Descripción Dos", end_datetime: "2017-04-17T18:00:00Z", name: "Tarea 2 Lista 3", priority: "NORMAL", start_datetime: "2017-04-17T14:00:00Z", state: "INPROGRESS"})
 {:ok, _} = Tasks.add_task_to_tasklist(user3.id, tasklist3.id, %{description: "Descripción Tres", end_datetime: "2018-04-17T18:00:00Z", name: "Tarea 3 Lista 3", priority: "HIGH", start_datetime: "2018-04-17T14:00:00Z", state: "FINISHED"})
+
+{:ok, %Note{} = note1} = Notes.create_note(user1.id)
+{:ok, %Note{} = note1} = Notes.update_note(user1.id, note1.id, %{title: "Nota Uno", body: "¡Un texto cualquiera!."})
+{:ok, _} = Notes.link_note_to_user(user1.id, note1.id, user2.id, true, true)
+{:ok, _} = Notes.link_note_to_user(user1.id, note1.id, user3.id, true, true)
+{:ok, _} = Notes.link_tag_to_note(note1.id, user1.id, tag2.name)
+{:ok, _} = Notes.link_tag_to_note(note1.id, user1.id, tag4.name)
+
+{:ok, %Note{} = note2} = Notes.create_note(user2.id)
+{:ok, %Note{} = note2} = Notes.update_note(user2.id, note2.id, %{title: "Nota Dos", body: "¡Otro texto cualquiera!."})
+{:ok, _} = Notes.link_note_to_user(user2.id, note2.id, user1.id, true, true)
+{:ok, _} = Notes.link_note_to_user(user2.id, note2.id, user3.id, true, true)
+{:ok, _} = Notes.link_tag_to_note(note2.id, user2.id, tag2.name)
+{:ok, _} = Notes.link_tag_to_note(note2.id, user2.id, tag4.name)
+
+{:ok, %Note{} = note3} = Notes.create_note(user3.id)
+{:ok, %Note{} = _note3} = Notes.update_note(user3.id, note3.id, %{title: "Nota Tres", body: "La simplicidad, o el arte de maximizar la cantidad de trabajo no realizado, es esencial."})
+{:ok, _} = Notes.link_tag_to_note(note3.id, user3.id, tag1.name)
+{:ok, _} = Notes.link_tag_to_note(note3.id, user3.id, tag3.name)
+
+{:ok, %Notepad{} = notepad1} = Notes.create_notepad(user1.id)
+{:ok, %Notepad{} = notepad1} = Notes.update_notepad(notepad1, %{name: "Mi bloc de notas"})
+{:ok, _} = Notes.link_tag_to_notepad(notepad1.id, user1.id, tag1.name)
+{:ok, _} = Notes.link_tag_to_notepad(notepad1.id, user1.id, tag3.name)
+{:ok, _} = Notes.add_note_to_notepad(note1.id, notepad1.id)
+{:ok, _} = Notes.add_note_to_notepad(note2.id, notepad1.id)

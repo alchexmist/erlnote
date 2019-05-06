@@ -751,6 +751,71 @@ defmodule Erlnote.NotesTest do
       assert {:error, _} = Notes.add_note_to_notepad(target_note.id, @bad_id)
     end
     
+    test "add_note_to_notepad/3 creates assoc(note, notepad)" do
+      {_, notes, notepads} = notepad_fixture()
+      [target_note | _] = notes
+      target_notepad = Enum.find(notepads, fn ntp -> ntp.user_id == target_note.user_id end)
+
+      target_note = target_note |> Repo.preload(:notepad)
+      assert is_nil(target_note.notepad)
+
+      {:ok, %Note{} = n} = Notes.add_note_to_notepad(target_note.user_id, target_note.id, target_notepad.id)
+      assert n.id == target_note.id
+      n = n |> Repo.preload(:notepad)
+      assert n.notepad.id == target_notepad.id
+      saved_notepad = (from np in Notepad, where: np.id == ^target_notepad.id) |> Repo.one
+      saved_notepad = saved_notepad |> Repo.preload(:notes)
+      assert saved_notepad.notes |> Enum.find_value(false, fn x -> x.id == target_note.id end) == true
+    end
+
+    test "add_note_to_notepad/3 with valid data returns error (the note already exists in the notepad)" do
+      {_, notes, notepads} = notepad_fixture()
+      [target_note | _] = notes
+      target_notepad = Enum.find(notepads, fn ntp -> ntp.user_id == target_note.user_id end)
+
+      target_note = target_note |> Repo.preload(:notepad)
+      assert is_nil(target_note.notepad)
+
+      {:ok, %Note{}} = Notes.add_note_to_notepad(target_note.user_id, target_note.id, target_notepad.id)
+      assert {:error, _} = Notes.add_note_to_notepad(target_note.user_id, target_note.id, target_notepad.id)
+    end
+
+    test "add_note_to_notepad/3 with invalid note ID returns error" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+
+      assert {:error, _} = Notes.add_note_to_notepad(target_notepad.user_id, @bad_id, target_notepad.id)
+    end
+
+    test "add_note_to_notepad/3 with invalid notepad ID returns error" do
+      {_, notes, _} = notepad_fixture()
+      [target_note | _] = notes
+
+      assert {:error, _} = Notes.add_note_to_notepad(target_note.user_id, target_note.id, @bad_id)
+    end
+
+    test "add_note_to_notepad/3 with invalid user ID returns error (no notepad owner)" do
+      {_, notes, notepads} = notepad_fixture()
+      [target_note | _] = notes
+      target_notepad = Enum.find(notepads, fn ntp -> ntp.user_id != target_note.user_id end)
+
+      target_note = target_note |> Repo.preload(:notepad)
+      assert is_nil(target_note.notepad)
+
+      {:error, _} = Notes.add_note_to_notepad(target_note.user_id, target_note.id, target_notepad.id)
+    end
+
+    test "add_note_to_notepad/3 with invalid user ID returns error (no read permission (note))" do
+      {_, notes, notepads} = notepad_fixture()
+      [target_note | _] = notes
+      target_notepad = Enum.find(notepads, fn ntp -> ntp.user_id != target_note.user_id end)
+
+      target_note = target_note |> Repo.preload(:notepad)
+      assert is_nil(target_note.notepad)
+
+      {:error, _} = Notes.add_note_to_notepad(target_notepad.user_id, target_note.id, target_notepad.id)
+    end
+
     test "remove_note_from_notepad/2 with valid data deletes assoc(note, notepad)" do
       {_, notes, notepads} = notepad_fixture()
       [target_note | _] = notes

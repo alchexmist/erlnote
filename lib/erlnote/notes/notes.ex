@@ -607,6 +607,48 @@ defmodule Erlnote.Notes do
   end
 
   @doc """
+  Creates assoc(note, notepad).
+
+  ## Examples
+
+      iex> add_note_to_notepad(user_id, valid_note_id, valid_notepad_id)
+      {:ok, %Note{}}
+
+      ex> add_note_to_notepad(user_id, valid_note_id, valid_notepad_id)
+      {:error, "There is already another notepad associated."}
+
+      iex> add_note_to_notepad(user_id, bad_note_id, valid_notepad_id)
+      {:error, msg}
+
+      iex> add_note_to_notepad(user_id, valid_note_id, bad_notepad_id)
+      {:error, msg}
+
+      iex> add_note_to_notepad(not_can_read_user_id, valid_note_id, bad_notepad_id)
+      {:error, msg}
+
+      iex> add_note_to_notepad(no_notepad_owner_user_id, valid_note_id, bad_notepad_id)
+      {:error, msg}
+
+  """
+  def add_note_to_notepad(user_id, note_id, notepad_id) when is_integer(user_id) and is_integer(note_id) and is_integer(notepad_id) do
+    with(
+      note when not is_nil(note) <- get_note(note_id),
+      notepad_id_is_nil when is_nil(notepad_id_is_nil) <- note.notepad_id,
+      notepad when not is_nil(notepad) <- get_notepad(notepad_id),
+      true <- notepad.user_id == user_id,
+      true <- can_read?(user_id, note_id)
+    ) do
+      note
+      |> Note.update_changeset(%{notepad_id: notepad.id})
+      |> Repo.update()
+    else
+      nil -> {:error, "Note ID or Notepad ID not found."}
+      false -> {:error, "Permission denied."}
+      _ -> {:error, "There is already another notepad associated."}
+    end
+  end
+
+  @doc """
   Deletes assoc(note, notepad). Returns error if the note does not exist in the notepad.
 
   ## Examples
@@ -631,6 +673,39 @@ defmodule Erlnote.Notes do
       |> Repo.update()
     else
       nil -> {:error, "Note ID or Notepad ID not found."}
+    end
+  end
+
+  @doc """
+  Deletes assoc(note, notepad). Returns error if the note does not exist in the notepad.
+
+  ## Examples
+
+      iex> remove_note_from_notepad(owner_id, valid_note_id, valid_notepad_id)
+      {:ok, %Note{}}
+
+      iex> remove_note_from_notepad(owner_id, bad_note_id, valid_notepad_id)
+      {:error, msg}
+
+      iex> remove_note_from_notepad(owner_id, valid_note_id, bad_notepad_id)
+      {:error, msg}
+
+      iex> remove_note_from_notepad(not_owner_id, valid_note_id, bad_notepad_id)
+      {:error, msg}
+
+  """
+  def remove_note_from_notepad(owner_id, note_id, notepad_id) when is_integer(owner_id) and is_integer(note_id) and is_integer(notepad_id) do
+    with(
+      notepad when not is_nil(notepad) <- get_notepad(notepad_id),
+      true <- owner_id == notepad.user_id,
+      note when not is_nil(note) <- Repo.one(from r in assoc(notepad, :notes), where: r.id == ^note_id)
+    ) do
+      note
+      |> Note.update_changeset(%{notepad_id: nil})
+      |> Repo.update()
+    else
+      nil -> {:error, "Note ID or Notepad ID not found."}
+      false -> {:error, "Permission denied."}
     end
   end
 
