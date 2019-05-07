@@ -547,6 +547,29 @@ defmodule Erlnote.Notes do
 
   ## Examples
 
+      iex> update_notepad(owner_id, notepad, %{field: new_value})
+      {:ok, %Notepad{}}
+
+      iex> update_notepad(owner_id, notepad, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+      ex> update_notepad(not_owner_id, notepad, %{field: new_value})
+      {:error, "Permission denied."}
+
+  """
+  def update_notepad(user_id, %Notepad{} = notepad, attrs) when is_integer(user_id) do
+    if notepad.user_id == user_id do
+      update_notepad(notepad, attrs)
+    else
+      {:error, "Permission denied."}
+    end
+  end
+
+  @doc """
+  Updates a notepad.
+
+  ## Examples
+
       iex> update_notepad(notepad, %{field: new_value})
       {:ok, %Notepad{}}
 

@@ -682,6 +682,32 @@ defmodule Erlnote.NotesTest do
       assert MapSet.member?(new_notepads, np.id)
     end
 
+    test "update_notepad/3 with valid data updates notepad" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      
+      {:ok, %Notepad{} = np} = Notes.update_notepad(target_notepad.user_id, target_notepad, @update_attrs)
+      assert np.id == target_notepad.id
+      assert np.name == @update_attrs.name
+      assert Repo.one(from n in Notepad, where: n.id == ^np.id) == np
+    end
+
+    test "update_notepad/3 with invalid data returns error" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      
+      assert {:error, %Ecto.Changeset{}} = Notes.update_notepad(target_notepad.user_id, target_notepad, @invalid_attrs)
+      assert Repo.one(from np in Notepad, where: np.id == ^target_notepad.id) == target_notepad
+    end
+
+    test "update_notepad/3 with user ID != owner ID returns error" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+      
+      {:error, _} = Notes.update_notepad(@bad_id, target_notepad, @update_attrs)
+      assert Repo.one(from n in Notepad, where: n.id == ^target_notepad.id) == target_notepad
+    end
+
     test "update_notepad/2 with valid data updates notepad" do
       {_, _, notepads} = notepad_fixture()
       [target_notepad | _] = notepads
@@ -862,6 +888,72 @@ defmodule Erlnote.NotesTest do
       [target_note | _] = notes
 
       assert {:error, _} = Notes.remove_note_from_notepad(target_note.id, @bad_id)
+    end
+
+    test "remove_note_from_notepad/3 with valid data deletes assoc(note, notepad)" do
+      {_, notes, notepads} = notepad_fixture()
+      [target_note | _] = notes
+      [target_notepad | _] = notepads
+
+      g = fn x -> x.id == target_note.id end
+      h = fn x -> Enum.find_value(x, false, g) end
+
+      {:ok, %Note{}} = Notes.add_note_to_notepad(target_note.id, target_notepad.id)
+      target_notepad = target_notepad |> Repo.preload(:notes, force: true)
+      assert target_notepad.notes |> h.() == true
+
+      {:ok, %Note{} = y} = Notes.remove_note_from_notepad(target_notepad.user_id, target_note.id, target_notepad.id)
+      assert y.id == target_note.id
+      y = y |> Repo.preload(:notepad)
+      assert is_nil(y.notepad)
+      saved_note = (from sn in Note, where: sn.id == ^target_note.id) |> Repo.one |> Repo.preload(:notepad)
+      #assert saved_note.notepad == nil
+      assert saved_note == y
+      saved_notepad = (from snp in Notepad, where: snp.id == ^target_notepad.id) |> Repo.one |> Repo.preload(:notes)
+      assert saved_notepad.notes |> h.() == false
+    end
+
+    test "remove_note_from_notepad/3 returns error if the note does not exist in the notepad (notepad != empty)" do
+      {_, notes, notepads} = notepad_fixture()
+      [aux_note | other_notes] = notes
+      [target_notepad | _] = notepads
+
+      {:ok, %Note{}} = Notes.add_note_to_notepad(aux_note.id, target_notepad.id)
+
+      [target_note | _] = other_notes
+      assert {:error, _} = Notes.remove_note_from_notepad(target_notepad.user_id, target_note.id, target_notepad.id)
+    end
+
+    test "remove_note_from_notepad/3 with invalid note ID returns error" do
+      {_, _, notepads} = notepad_fixture()
+      [target_notepad | _] = notepads
+
+      assert {:error, _} = Notes.remove_note_from_notepad(target_notepad.user_id, @bad_id, target_notepad.id)
+    end
+
+    test "remove_note_from_notepad/3 with invalid notepad ID returns error" do
+      {_, notes, _} = notepad_fixture()
+      [target_note | _] = notes
+
+      assert {:error, _} = Notes.remove_note_from_notepad(target_note.user_id, target_note.id, @bad_id)
+    end
+
+    test "remove_note_from_notepad/3 with user ID != owner ID returns error" do
+      {_, notes, notepads} = notepad_fixture()
+      [target_note | _] = notes
+      [target_notepad | _] = notepads
+
+      g = fn x -> x.id == target_note.id end
+      h = fn x -> Enum.find_value(x, false, g) end
+
+      {:ok, %Note{}} = Notes.add_note_to_notepad(target_note.id, target_notepad.id)
+      target_notepad = target_notepad |> Repo.preload(:notes, force: true)
+      assert target_notepad.notes |> h.() == true
+
+      {:error, _} = Notes.remove_note_from_notepad(@bad_id, target_note.id, target_notepad.id)
+      
+      target_notepad = target_notepad |> Repo.preload(:notes, force: true)
+      assert target_notepad.notes |> h.() == true
     end
 
     test "link_tag_to_notepad/3 with valid data creates assoc(notepad, tag)" do
