@@ -13,93 +13,93 @@ defmodule Erlnote.Seeds do
     alias Erlnote.Notes.{Note, Notepad}
 
     user1 = Repo.insert!(
-    User.registration_changeset(
-        %User{},
-        %{
-            username: "asm", 
-            name: "asm", 
-            credentials: [%{ 
-                email: "asm@example.com", 
-                password: "altosecreto"
-            }]
-        }
-    )
+      User.registration_changeset(
+          %User{},
+          %{
+              username: "asm", 
+              name: "asm", 
+              credentials: [%{ 
+                  email: "asm@example.com", 
+                  password: "altosecreto"
+              }]
+          }
+      )
     )
 
     user2 = Repo.insert!(
-    User.registration_changeset(
-        %User{},
-        %{
-            name: "jsg",
-            username: "jsg",
-            credentials: [
-                %{
-                    email: "jsg@example.com",
-                    password: "jsgjsgjsg"
-                },
-                %{
-                    email: "jsg1@example.com",
-                    password: "jjjjjjjjj"
-                }
-            ]
-        }
-    )
+      User.registration_changeset(
+          %User{},
+          %{
+              name: "jsg",
+              username: "jsg",
+              credentials: [
+                  %{
+                      email: "jsg@example.com",
+                      password: "jsgjsgjsg"
+                  },
+                  %{
+                      email: "jsg1@example.com",
+                      password: "jjjjjjjjj"
+                  }
+              ]
+          }
+      )
     )
 
     user3 = Repo.insert!(
-    User.registration_changeset(
-        %User{},
-        %{
-            name: "mnmc",
-            username: "mnmc",
-            credentials: [
-                %{
-                    email: "mnmc@example.com",
-                    password: "mnmcmnmcmnmc"
-                },
-                %{
-                    email: "mnmc1@example.com",
-                    password: "mmmmmmmmm"
-                }
-            ]
-        }
-    )
+      User.registration_changeset(
+          %User{},
+          %{
+              name: "mnmc",
+              username: "mnmc",
+              credentials: [
+                  %{
+                      email: "mnmc@example.com",
+                      password: "mnmcmnmcmnmc"
+                  },
+                  %{
+                      email: "mnmc1@example.com",
+                      password: "mmmmmmmmm"
+                  }
+              ]
+          }
+      )
     )
 
     tag1 = Repo.insert!(
-    Tag.changeset(
-        %Tag{},
-        %{
-            name: "privado"
-        }
-    )
+      Tag.changeset(
+          %Tag{},
+          %{
+              name: "privado"
+          }
+      )
     )
 
     tag2 = Repo.insert!(
-    Tag.changeset(
-        %Tag{},
-        %{
-            name: "compartido"
-        }
-    )
+      Tag.changeset(
+          %Tag{},
+          %{
+              name: "compartido"
+          }
+      )
     )
 
     tag3 = Repo.insert!(
-    Tag.changeset(
-        %Tag{},
-        %{
-            name: "personal"
-        }
-    )
+      Tag.changeset(
+          %Tag{},
+          %{
+              name: "personal"
+          }
+      )
     )
 
     tag4 = Repo.insert!(
-    Tag.changeset(
-        %Tag{},
-        %{
-            name: "profesional"
-        }
-    )
+      Tag.changeset(
+          %Tag{},
+          %{
+              name: "profesional"
+          }
+      )
     )
 
     {:ok, %Board{} = board1} = Boards.create_board(user1.id)
@@ -169,7 +169,7 @@ defmodule Erlnote.Seeds do
     {:ok, _} = Notes.add_note_to_notepad(note2.id, notepad1.id)
 
     :ok
-    
+
   end
 
 end
