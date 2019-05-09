@@ -6,7 +6,7 @@ defmodule ErlnoteWeb.Schema do
     query do
       @desc "The list of available users in the system"
       field :users, list_of(:user) do
-        resolve fn _, _, _ -> {:ok, Accounts.list_users} end
+        resolve fn _, _, _ -> {:ok, Accounts.list_users()} end
       end
     end
 
