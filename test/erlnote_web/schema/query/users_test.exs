@@ -36,4 +36,35 @@ defmodule ErlnoteWeb.Schema.Query.UsersTest do
     }
   end
 
+  @query """
+  {
+    user(username: "asm") {
+      name
+    }
+  }
+  """
+  test "user field returns a user filtered by username" do
+    response = get(build_conn(), "/api", query: @query)
+    assert json_response(response, 200) == %{
+      "data" => %{
+        "user" => %{"name" => "asm"}
+      }
+    }
+  end
+
+  @query """
+  {
+    user(username: 123) {
+      name
+    }
+  }
+  """
+  test "user field returns errors when using a bad value" do
+    response = get(build_conn(), "/api", query: @query)
+    assert %{"errors" => [
+      %{"message" => message}
+    ]} = json_response(response, 200)
+    assert message == "Argument \"username\" has invalid value 123."
+  end
+
 end
