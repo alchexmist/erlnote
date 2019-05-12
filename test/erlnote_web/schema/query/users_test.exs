@@ -37,14 +37,15 @@ defmodule ErlnoteWeb.Schema.Query.UsersTest do
   end
 
   @query """
-  {
-    user(username: "asm") {
+  query UserByUsername ($term: String) {
+    user(username: $term) {
       name
     }
   }
   """
+  @variables %{"term" => "asm"}
   test "user field returns a user filtered by username" do
-    response = get(build_conn(), "/api", query: @query)
+    response = get(build_conn(), "/api", query: @query, variables: @variables)
     assert json_response(response, 200) == %{
       "data" => %{
         "user" => %{"name" => "asm"}
