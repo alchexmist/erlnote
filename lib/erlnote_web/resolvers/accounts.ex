@@ -16,4 +16,8 @@ defmodule ErlnoteWeb.Resolvers.Accounts do
     end
   end
 
+  def create_user_account(_, %{input: params}, _) do
+    Accounts.create_user(params)
+  end
+
 end

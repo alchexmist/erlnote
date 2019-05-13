@@ -3,10 +3,16 @@ defmodule ErlnoteWeb.Schema.AccountsTypes do
 
   alias ErlnoteWeb.Resolvers
   
+  object :credential do
+    field :email, :string
+    field :password_hash, :string
+  end
+
   object :user do
     field :id, :id
     field :name, :string
-    field :username, :string  
+    field :username, :string
+    field :credentials, list_of(:credential)  
   end
 
   enum :get_user_filter_type do
@@ -20,6 +26,43 @@ defmodule ErlnoteWeb.Schema.AccountsTypes do
     field :type, non_null(:get_user_filter_type)
     @desc "String value"
     field :value, non_null(:string)
+  end
+
+  input_object :user_credential_input do
+    field :email, non_null(:string)
+    field :password, non_null(:string)
+  end
+  # You can't use object type for user input; you need to create input object type.
+  # mutation CreateUserAccount($accountData: UserAccountInput!) {
+  #   createUserAccount(input: $accountData) {
+  #     id
+  #     name
+  #     username
+  #     credentials {
+  #       email
+  #       password_hash
+  #     }
+  #   }
+  # }
+  # QUERY VARIABLES
+  # {
+  #   "accountData": {
+  #     "username": "whitehat",
+  #     "name": "White Hat",
+  #     "credentials": [
+  #       {
+  #         "password": "12345678910",
+  #         "email": "whitehat@example.com"
+  #       }
+  #     ]
+  #   }
+  # }
+  input_object :user_account_input do
+    field :name, non_null(:string)
+    field :username, non_null(:string)
+    field :credentials, non_null(list_of(:user_credential_input))
+    # field :email, non_null(:string)
+    # field :password, non_null(:string)
   end
 
   object :accounts_queries do
