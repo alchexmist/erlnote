@@ -1,6 +1,6 @@
 defmodule ErlnoteWeb.Resolvers.Accounts do
   alias Erlnote.Accounts
-  import Ecto.Changeset
+  alias Erlnote.Helpers.Error
 
   def users(_, _, _) do
     {:ok, Accounts.list_users()}
@@ -20,18 +20,9 @@ defmodule ErlnoteWeb.Resolvers.Accounts do
   def create_user_account(_, %{input: params}, _) do
     case r = Accounts.create_user(params) do
       {:error, %Ecto.Changeset{} = ch} ->
-        temp = traverse_errors(ch, fn {msg, opts} ->
-          Enum.reduce(opts, msg, fn {key, value}, acc ->
-            String.replace(acc, "%{#{key}}", to_string(value))
-          end)
-        end)
-        |> Jason.encode!
-        |> String.replace("\"", "")
         {
-          :error, temp
-          # temp
-          # |> Enum.map_join(", ", fn {key, val} -> ~s{#{key} #{val}} end)
-      }
+          :error, Error.changeset_errors_to_json(ch)
+        }
       _ -> r
     end
   end
