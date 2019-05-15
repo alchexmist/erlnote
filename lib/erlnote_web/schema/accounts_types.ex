@@ -33,8 +33,9 @@ defmodule ErlnoteWeb.Schema.AccountsTypes do
     field :password, non_null(:string)
   end
   # You can't use object type for user input; you need to create input object type.
+  # userAccount es un alias para createUserAccount en la respuesta.
   # mutation CreateUserAccount($accountData: UserAccountInput!) {
-  #   createUserAccount(input: $accountData) {
+  #   userAccount: createUserAccount(input: $accountData) {
   #     id
   #     name
   #     username

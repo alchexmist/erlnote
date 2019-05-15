@@ -21,8 +21,42 @@ defmodule ErlnoteWeb.Resolvers.Accounts do
     case r = Accounts.create_user(params) do
       {:error, %Ecto.Changeset{} = ch} ->
         {
-          :error, Error.changeset_errors_to_json(ch)
+          :error,
+          message: "Could not create user account",
+          details: Error.changeset_errors_to_string(ch)
         }
+        # Example of response:
+        # {
+        #   "errors": [
+        #     {
+        #       "path": [
+        #         "userAccount"
+        #       ],
+        #       "message": "Could not create user account",
+        #       "locations": [
+        #         {
+        #           "line": 2,
+        #           "column": 0
+        #         }
+        #       ],
+        #       "details": {
+        #         "credentials": [
+        #           {
+        #             "password": [
+        #               "should be at least 8 character(s)"
+        #             ],
+        #             "email": [
+        #               "has invalid format"
+        #             ]
+        #           }
+        #         ]
+        #       }
+        #     }
+        #   ],
+        #   "data": {
+        #     "userAccount": null
+        #   }
+        # }
       _ -> r
     end
   end
