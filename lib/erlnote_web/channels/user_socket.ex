@@ -1,6 +1,7 @@
 defmodule ErlnoteWeb.UserSocket do
   use Phoenix.Socket
-
+  use Absinthe.Phoenix.Socket, schema: ErlnoteWeb.Schema
+  
   ## Channels
   # channel "room:*", ErlnoteWeb.RoomChannel
 
