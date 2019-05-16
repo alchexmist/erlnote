@@ -1,6 +1,7 @@
 defmodule ErlnoteWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :erlnote
-
+  use Absinthe.Phoenix.Endpoint
+  
   socket "/socket", ErlnoteWeb.UserSocket,
     websocket: true,
     longpoll: false
