@@ -11,9 +11,10 @@ defmodule Erlnote.Application do
       # Start the Ecto repository
       Erlnote.Repo,
       # Start the endpoint when the application starts
-      ErlnoteWeb.Endpoint
+      ErlnoteWeb.Endpoint,
       # Starts a worker by calling: Erlnote.Worker.start_link(arg)
       # {Erlnote.Worker, arg},
+      {Absinthe.Subscription, [ErlnoteWeb.Endpoint]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
