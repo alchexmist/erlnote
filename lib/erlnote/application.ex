@@ -6,15 +6,17 @@ defmodule Erlnote.Application do
   use Application
 
   def start(_type, _args) do
+    import Supervisor.Spec
+
     # List all child processes to be supervised
     children = [
       # Start the Ecto repository
-      Erlnote.Repo,
+      supervisor(Erlnote.Repo, []),
       # Start the endpoint when the application starts
-      ErlnoteWeb.Endpoint,
+      supervisor(ErlnoteWeb.Endpoint, []),
       # Starts a worker by calling: Erlnote.Worker.start_link(arg)
       # {Erlnote.Worker, arg},
-      {Absinthe.Subscription, [ErlnoteWeb.Endpoint]}
+      supervisor(Absinthe.Subscription, [ErlnoteWeb.Endpoint])
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
