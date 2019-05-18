@@ -15,8 +15,16 @@ defmodule ErlnoteWeb.Schema do
     field :create_user_account, :user do
       arg :input, non_null(:user_account_input)
       resolve &Resolvers.Accounts.create_user_account/3
-      middleware Middleware.ChangesetErrors, "Could not create user account"
+      #middleware Middleware.ChangesetErrors, "Could not create user account"
     end
+  end
+
+  def middleware(middleware, %{identifier: :create_user_account}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not create user account"}]
+  end
+
+  def middleware(middleware, _field, _object) do
+    middleware
   end
 
 end

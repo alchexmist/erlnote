@@ -8,8 +8,13 @@ defmodule ErlnoteWeb.Schema.Middleware.ChangesetErrors do
     with (
       %{errors: [%Ecto.Changeset{} = c]} <- resolution_struct
     ) do
-      # %{resolution_struct | value: %{errors: parse_errors(c)}, errors: []}
-      #%{resolution_struct | errors: ["Adios"]}
+      # One or more errors for a field can be returned in a single `{:error, error_value}` tuple.
+      # `error_value` can be:
+      # - A simple error message string.
+      # - A map containing `:message` key, plus any additional serializable metadata.
+      # - A keyword list containing a `:message` key, plus any additional serializable metadata.
+      # - A list containing multiple of any/all of these.
+      # - Any other value compatible with `to_string/1`.
       resolution_struct
       |> Absinthe.Resolution.put_result({:error, message: description, details: parse_errors(c)})
     end
