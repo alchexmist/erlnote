@@ -8,7 +8,35 @@ defmodule Erlnote.Accounts do
 
   alias Erlnote.Accounts.{User, Credential}
 
-    @doc """
+  @doc """
+  User authentication.
+
+  ## Examples
+
+      iex> authenticate(email, valid_password)
+      {:ok, %User{}}
+
+      iex> authenticate(email, bad_password)
+      {:error, "Authentication error"}
+
+      iex> authenticate(bad_email, _password)
+      {:error, "Authentication error"}
+
+  """
+  def authenticate(email, password) do
+    
+    with(
+      (%Credential{password_hash: _digest} = target_credential) <- Repo.get_by(Credential, email: email),
+      {:ok, _} <- Comeonin.Pbkdf2.check_pass(target_credential, password)
+    ) do
+      {:ok, get_user_by_id(target_credential.user_id)}
+    else
+      _ -> {:error, "Authentication error"}
+    end
+
+  end
+
+  @doc """
   Returns the User ID.
 
   ## Examples
