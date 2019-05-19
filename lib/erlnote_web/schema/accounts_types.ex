@@ -66,6 +66,11 @@ defmodule ErlnoteWeb.Schema.AccountsTypes do
     # field :password, non_null(:string)
   end
 
+  object :session do
+    field :token, :string
+    field :user, :user
+  end
+  
   object :accounts_queries do
           # query UserList {
       #   users {

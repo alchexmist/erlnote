@@ -1,5 +1,6 @@
 defmodule ErlnoteWeb.Resolvers.Accounts do
   alias Erlnote.Accounts
+  alias Erlnote.Accounts.User
 
   def users(_, _, _) do
     {:ok, Accounts.list_users()}
@@ -59,6 +60,17 @@ defmodule ErlnoteWeb.Resolvers.Accounts do
     #     # }
     #   _ -> r
     # end
+  end
+
+  def login(_, %{email: email, password: password}, _) do
+    case Accounts.authenticate(email, password) do
+      {:ok, %User{} = u} ->
+        token = ErlnoteWeb.Authentication.sign(%{id: u.id})
+        {:ok, %{token: token, user: u}}
+      error ->
+        error # Returns {:error, "Authentication error"}
+    end
+
   end
 
 end
