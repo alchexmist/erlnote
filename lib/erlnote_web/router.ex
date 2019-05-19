@@ -11,13 +11,14 @@ defmodule ErlnoteWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug ErlnoteWeb.Context
   end
 
   scope "/" do
     pipe_through :api
 
     forward "/api", Absinthe.Plug, schema: ErlnoteWeb.Schema
-    forward "/graphiql", Absinthe.Plug.GraphiQL, schema: ErlnoteWeb.Schema, interface: :simple, socket: ErlnoteWeb.UserSocket
+    forward "/graphiql", Absinthe.Plug.GraphiQL, schema: ErlnoteWeb.Schema, socket: ErlnoteWeb.UserSocket
   end
   
   # scope "/", ErlnoteWeb do

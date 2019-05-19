@@ -62,6 +62,29 @@ defmodule ErlnoteWeb.Resolvers.Accounts do
     # end
   end
 
+  # mutation {
+  #   login(email: "asm@example.com", password: "altosecreto") {
+  #     token
+  #     user {
+  #       id
+  #       name
+  #       username
+  #     }
+  #   }
+  # }
+  # RESPONSE
+  # {
+  #   "data": {
+  #     "login": {
+  #       "user": {
+  #         "username": "asm",
+  #         "name": "asm",
+  #         "id": "1"
+  #       },
+  #       "token": "SFMyNTY.g3QAAAACZAAEZGF0YXQAAAABZAACaWRhAWQABnNpZ25lZG4GAChNvtBqAQ.alz4Lfr6wfXMX-PDPzX71Taamn-Se5mCceLaW05zWJw"
+  #     }
+  #   }
+  # }
   def login(_, %{email: email, password: password}, _) do
     case Accounts.authenticate(email, password) do
       {:ok, %User{} = u} ->
@@ -70,7 +93,6 @@ defmodule ErlnoteWeb.Resolvers.Accounts do
       error ->
         error # Returns {:error, "Authentication error"}
     end
-
   end
 
 end
