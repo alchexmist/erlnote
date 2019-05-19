@@ -2,6 +2,7 @@ defmodule ErlnoteWeb.Schema do
   use Absinthe.Schema
 
   import_types __MODULE__.AccountsTypes
+  import_types __MODULE__.BoardsTypes
 
   alias ErlnoteWeb.Resolvers
   alias ErlnoteWeb.Schema.Middleware
@@ -24,11 +25,20 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Accounts.login/3
     end
 
+    field :create_board, :board do
+      middleware Middleware.Authorize
+      resolve &Resolvers.Boards.create_board/3
+    end
+
     # End mutation
   end
 
   def middleware(middleware, %{identifier: :create_user_account}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not create user account"}]
+  end
+
+  def middleware(middleware, %{identifier: :create_board}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not create board"}]
   end
 
   def middleware(middleware, _field, _object) do
