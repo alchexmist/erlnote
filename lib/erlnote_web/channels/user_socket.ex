@@ -16,8 +16,39 @@ defmodule ErlnoteWeb.UserSocket do
   #
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
-  def connect(_params, socket, _connect_info) do
-    {:ok, socket}
+  # def connect(_params, socket, _connect_info) do
+  #   {:ok, socket}
+  # end
+
+  # Client sends token without "Bearer ". 
+  # ws://localhost:4000/socket?token=hello
+  def connect(%{"token" => token} = _params, socket, _connect_info) do
+    IO.inspect token
+    case c = gen_context(token) do
+      %{current_user: _} ->
+        socket = Absinthe.Phoenix.Socket.put_options(socket, context: c)
+        {:ok, socket}
+      _ -> :error
+    end
+  end
+
+  def connect(_params, _socket, _connect_info) do
+    :error
+  end
+
+  defp gen_context(token) do
+    with(
+      {:ok, data} <- ErlnoteWeb.Authentication.verify(token),
+      %{} = user <- get_user(data)
+    ) do
+      %{current_user: user}
+    else
+      _ -> :error
+    end
+  end
+
+  defp get_user(%{id: id}) do
+    Erlnote.Accounts.get_user_by_id(id)
   end
 
   # Socket id's are topics that allow you to identify all sockets for a given user:

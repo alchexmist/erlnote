@@ -23,7 +23,12 @@ defmodule ErlnoteWeb.Resolvers.Boards do
     #   _ -> {:error, "unauthorized"}
     # end
     %{current_user: %{id: id}} = context
-    Boards.create_board(id)
+    case r = Boards.create_board(id) do
+      {:ok, %Erlnote.Boards.Board{} = board} ->
+        Absinthe.Subscription.publish(ErlnoteWeb.Endpoint, board, new_board: "*")
+        r
+      _ -> r
+    end
   end
 
 end
