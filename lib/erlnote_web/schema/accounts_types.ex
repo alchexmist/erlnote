@@ -8,12 +8,12 @@ defmodule ErlnoteWeb.Schema.AccountsTypes do
     field :password_hash, :string
   end
 
-  object :user do
-    field :id, :id
-    field :name, :string
-    field :username, :string
-    field :credentials, list_of(:credential)  
-  end
+  # object :user do
+  #   field :id, :id
+  #   field :name, :string
+  #   field :username, :string
+  #   field :credentials, list_of(:credential)  
+  # end
 
   enum :get_user_filter_type do
     value :id #, as: "id" # Con el "as" se reciben string en lugar de atoms.

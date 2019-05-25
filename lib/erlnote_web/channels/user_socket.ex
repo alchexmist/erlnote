@@ -32,7 +32,8 @@ defmodule ErlnoteWeb.UserSocket do
     end
   end
 
-  def connect(_params, _socket, _connect_info) do
+  def connect(_params, _socket, connect_info) do
+    IO.inspect connect_info
     :error
   end
 

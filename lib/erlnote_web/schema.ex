@@ -7,8 +7,23 @@ defmodule ErlnoteWeb.Schema do
   alias ErlnoteWeb.Resolvers
   alias ErlnoteWeb.Schema.Middleware
 
+  object :user do
+    field :id, :id
+    field :name, :string
+    field :username, :string
+    field :credentials, list_of(:credential)
+    field :owner_boards, list_of(:board)
+  end
+
   query do
     import_fields :accounts_queries
+
+    # BAJO IMPLEMENTACIÓN
+    field :me, :user do
+      middleware Middleware.Authorize
+      resolve &Resolvers.Accounts.me/3
+    end
+    # FIN BAJO IMPLEMENTACIÓN
 
     # End query
   end
