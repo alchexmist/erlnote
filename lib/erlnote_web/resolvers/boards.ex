@@ -31,5 +31,35 @@ defmodule ErlnoteWeb.Resolvers.Boards do
     end
   end
 
+  # mutation UpdateBoard($boardData: UpdateBoardInput!) {
+  #   board: updateBoard(input: $boardData) {
+  #     id
+  #     text
+  #     title
+  #   }
+  # }
+  # QUERY VARIABLES
+  # {
+  #   "boardData": {
+  #     "id": "1",
+  #     "text": "White Hat",
+  #     "title": "The tower of Hercules"
+  #   }
+  # }
+  def update_board(_, %{input: params}, %{context: context}) do
+    IO.inspect params
+    IO.inspect context
+    with(
+      %{current_user: %{id: user_id}} <- context,
+      %{id: b_id} <- params,
+      #{user_id, _} <- Integer.parse(u_id),
+      {board_id, _} <- Integer.parse(b_id)
+    ) do
+      Boards.update_board(user_id, board_id, params)
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
 end
 

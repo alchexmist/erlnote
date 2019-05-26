@@ -56,6 +56,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Boards.create_board/3
     end
 
+    field :update_board, :board do
+      arg :input, non_null(:update_board_input)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Boards.update_board/3
+    end
+
     # End mutation
   end
 
@@ -65,6 +71,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :create_board}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not create board"}]
+  end
+
+  def middleware(middleware, %{identifier: :update_board}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not update board"}]
   end
 
   def middleware(middleware, _field, _object) do
