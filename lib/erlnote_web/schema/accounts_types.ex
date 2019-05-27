@@ -116,6 +116,8 @@ defmodule ErlnoteWeb.Schema.AccountsTypes do
         arg :filter, non_null(:get_user_filter)
         resolve &Resolvers.Accounts.user/3
       end
+
+  # End :account_queries
   end
 
 

@@ -1,7 +1,8 @@
 defmodule ErlnoteWeb.Resolvers.Boards do
   
   alias Erlnote.Boards
- 
+  alias Erlnote.Accounts
+
   # mutation CreateBoard {
   #   board: createBoard {
   #     id
@@ -60,6 +61,57 @@ defmodule ErlnoteWeb.Resolvers.Boards do
       _ -> {:error, "Invalid data"}
     end
   end
+
+  # mutation AddBoardContributor($data: AddBoardContributorFilter!){
+  #   addBoardContributor(filter: $data) {
+  #     msg
+  #   }
+  # }
+  # QUERY VARIABLES
+  # {
+  #   "data": {
+  #     "type": "ID",
+  #     "value": "2",
+  #     "bid": "11"
+  #   }
+  # }
+  # RESULT
+  # {
+  #   "data": {
+  #     "addBoardContributor": {
+  #       "msg": "ok"
+  #     }
+  #   }
+  # }
+  def add_contributor(_, %{filter: opts}, %{context: context}) do
+    r = case {opts, context} do
+      {%{type: :id, value: i, bid: bid}, %{current_user: %{id: owner_id}}} when is_binary(i) ->
+        with(
+          {i, _} <- Integer.parse(i),
+          {bid, _} <- Integer.parse(bid),
+          user when not is_nil(user) <- Accounts.get_user_by_id(i)
+        ) do
+          Boards.link_board_to_user(owner_id, bid, user.id)
+        else
+          _ -> {:error, "Invalid data"}
+        end
+      {%{type: :username, value: u, bid: bid}, %{current_user: %{id: owner_id}}} when is_binary(u) ->
+        with(
+          {bid, _} <- Integer.parse(bid),
+          user when not is_nil(user) <- Accounts.get_user_by_username(u)
+        ) do
+          Boards.link_board_to_user(owner_id, bid, user.id)
+        else
+          _ -> {:error, "Invalid data"}
+        end
+    end
+
+    case r do
+      {:ok, _} -> {:ok, %{msg: "ok"}}
+      _ -> r
+    end
+  end
+
 
 end
 

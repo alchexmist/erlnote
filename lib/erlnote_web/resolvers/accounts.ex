@@ -4,7 +4,13 @@ defmodule ErlnoteWeb.Resolvers.Accounts do
   alias Erlnote.Boards
 
   def me(_, _, %{context: %{current_user: current_user}}) do
-    {:ok, Map.put(current_user, :owner_boards, Boards.list_is_owner_boards(current_user.id))}
+    {:ok,
+      %{current_user |
+        owner_boards: Boards.list_is_owner_boards(current_user.id),
+        boards: Boards.list_is_contributor_boards(current_user.id)
+      }
+    }
+    # {:ok, Map.put(current_user, :owner_boards, Boards.list_is_owner_boards(current_user.id))}
   end
   def me(_, _, _) do
     {:ok, nil}

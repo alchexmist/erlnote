@@ -13,17 +13,21 @@ defmodule ErlnoteWeb.Schema do
     field :username, :string
     field :credentials, list_of(:credential)
     field :owner_boards, list_of(:board)
+    # field :boards, list_of(:board)
+    field :boards, list_of(:board), name: "contributor_boards"
+  end
+
+  object :msg do
+    field :msg, non_null(:string)
   end
 
   query do
     import_fields :accounts_queries
 
-    # BAJO IMPLEMENTACIÓN
     field :me, :user do
       middleware Middleware.Authorize
       resolve &Resolvers.Accounts.me/3
     end
-    # FIN BAJO IMPLEMENTACIÓN
 
     # End query
   end
@@ -62,6 +66,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Boards.update_board/3
     end
 
+    field :add_board_contributor, :msg do
+      arg :filter, non_null(:add_board_contributor_filter)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Boards.add_contributor/3
+    end
+
     # End mutation
   end
 
@@ -74,6 +84,10 @@ defmodule ErlnoteWeb.Schema do
   end
 
   def middleware(middleware, %{identifier: :update_board}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not update board"}]
+  end
+
+  def middleware(middleware, %{identifier: :add_board_contributor}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not update board"}]
   end
 
