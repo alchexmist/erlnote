@@ -127,7 +127,6 @@ defmodule ErlnoteWeb.Schema do
     #     text
     #   }
     # }
-    #BAJO IMPLEMENTACIÓN
     field :board_updated, :board do
       arg :board_id, non_null(:id)
 
@@ -135,7 +134,6 @@ defmodule ErlnoteWeb.Schema do
 
       trigger :update_board, topic: fn board -> "board#{board.id}:updates" end
     end
-    #FIN BAJO IMPLEMENTACIÓN
 
     # End subscription
   end
