@@ -112,6 +112,37 @@ defmodule ErlnoteWeb.Resolvers.Boards do
     end
   end
 
+  # mutation DeleteBoardUser($data: ID!) {
+  #   deleteBoardUser(boardId: $data) {
+  #     id
+  #     title
+  #   }
+  # }
+  # QUERY VARIABLES
+  # {
+  #   "data": "10"
+  # }
+  # RESPONSE
+  # {
+  #   "data": {
+  #     "deleteBoardUser": {
+  #       "title": "board-8fed75fe-a283-4aca-bc28-29f5c393aa77",
+  #       "id": "10"
+  #     }
+  #   }
+  # }
+  def delete_user(_, %{board_id: board_id}, %{context: context}) do
+    with(
+      {board_id, _} <- Integer.parse(board_id),
+      %{current_user: %{id: user_id}} <- context,
+      board when not is_nil(board) <- Boards.get_board(board_id)
+    ) do
+      Boards.delete_board(board, user_id)
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
 
 end
 

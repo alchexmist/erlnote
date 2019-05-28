@@ -72,6 +72,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Boards.add_contributor/3
     end
 
+    field :delete_board_user, :board do
+      arg :board_id, non_null(:id)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Boards.delete_user/3
+    end
+
     # End mutation
   end
 
@@ -88,7 +94,11 @@ defmodule ErlnoteWeb.Schema do
   end
 
   def middleware(middleware, %{identifier: :add_board_contributor}, %{identifier: :mutation}) do
-    middleware ++ [{Middleware.ChangesetErrors, "Could not update board"}]
+    middleware ++ [{Middleware.ChangesetErrors, "Could not add board contributor"}]
+  end
+
+  def middleware(middleware, %{identifier: :delete_board_user}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not delete board user"}]
   end
 
   def middleware(middleware, _field, _object) do
@@ -109,6 +119,23 @@ defmodule ErlnoteWeb.Schema do
       end
       
     end
+
+    # subscription {
+    #   boardUpdated(boardId: "2") {
+    #     id
+    #     title
+    #     text
+    #   }
+    # }
+    #BAJO IMPLEMENTACIÓN
+    field :board_updated, :board do
+      arg :board_id, non_null(:id)
+
+      config fn args, _context -> {:ok, topic: "board#{args.board_id}:updates"} end
+
+      trigger :update_board, topic: fn board -> "board#{board.id}:updates" end
+    end
+    #FIN BAJO IMPLEMENTACIÓN
 
     # End subscription
   end
