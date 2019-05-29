@@ -2,7 +2,7 @@ defmodule ErlnoteWeb.Resolvers.Notes do
 
   alias Erlnote.Notes
   alias Erlnote.Accounts
-  
+
   # mutation CreateNote {
   #   note: createNote {
   #     id
@@ -103,5 +103,35 @@ defmodule ErlnoteWeb.Resolvers.Notes do
     end
   end
 
+  # mutation DeleteNoteUser($data: ID!) {
+  #   deleteNoteUser(noteId: $data) {
+  #     id
+  #     title
+  #   }
+  # }
+  # QUERY VARIABLES
+  # {
+  #   "data": "7"
+  # }
+  # RESPONSE
+  # {
+  #   "data": {
+  #     "deleteNoteUser": {
+  #       "title": "note-8fed75fe-a283-4aca-bc28-29f5c393aa77",
+  #       "id": "7"
+  #     }
+  #   }
+  # }
+  def delete_user(_, %{note_id: note_id}, %{context: context}) do
+    with(
+      {note_id, _} <- Integer.parse(note_id),
+      %{current_user: %{id: user_id}} <- context,
+      note when not is_nil(note) <- Notes.get_note(note_id)
+    ) do
+      Notes.delete_note(note, user_id)
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
 
 end

@@ -275,10 +275,10 @@ defmodule Erlnote.Notes do
       true
 
       iex> can_write?(bad_user_id, note_id)
-      {false, false}
+      false
 
       iex> can_write?(user_id, bad_note_id)
-      {false, false}
+      false
 
   """
   def can_write?(user_id, note_id) do
@@ -294,10 +294,10 @@ defmodule Erlnote.Notes do
       true
 
       iex> can_read?(bad_user_id, note_id)
-      {false, false}
+      false
 
       iex> can_read?(user_id, bad_note_id)
-      {false, false}
+      false
 
   """
   def can_read?(user_id, note_id) do

@@ -98,6 +98,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notes.add_contributor/3
     end
 
+    field :delete_note_user, :note do
+      arg :note_id, non_null(:id)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notes.delete_user/3
+    end
+
     # End mutation
   end
 
@@ -131,6 +137,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :add_note_contributor}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not add note contributor"}]
+  end
+
+  def middleware(middleware, %{identifier: :delete_note_user}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not delete note user"}]
   end
 
   def middleware(middleware, _field, _object) do
