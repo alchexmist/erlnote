@@ -92,6 +92,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notes.update_note/3
     end
 
+    field :add_note_contributor, :msg do
+      arg :filter, non_null(:add_note_contributor_filter)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notes.add_contributor/3
+    end
+
     # End mutation
   end
 
@@ -121,6 +127,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :update_note}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not update note"}]
+  end
+
+  def middleware(middleware, %{identifier: :add_note_contributor}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not add note contributor"}]
   end
 
   def middleware(middleware, _field, _object) do
