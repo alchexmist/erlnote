@@ -3,6 +3,7 @@ defmodule ErlnoteWeb.Schema do
 
   import_types __MODULE__.AccountsTypes
   import_types __MODULE__.BoardsTypes
+  import_types __MODULE__.NotesTypes
 
   alias ErlnoteWeb.Resolvers
   alias ErlnoteWeb.Schema.Middleware
@@ -78,6 +79,11 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Boards.delete_user/3
     end
 
+    field :create_note, :note do
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notes.create_note/3
+    end
+
     # End mutation
   end
 
@@ -99,6 +105,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :delete_board_user}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not delete board user"}]
+  end
+
+  def middleware(middleware, %{identifier: :create_note}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not create note"}]
   end
 
   def middleware(middleware, _field, _object) do
