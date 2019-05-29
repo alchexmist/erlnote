@@ -17,6 +17,7 @@ defmodule ErlnoteWeb.Schema do
     # field :boards, list_of(:board)
     field :boards, list_of(:board), name: "contributor_boards"
     field :notes, list_of(:note), name: "owner_notes"
+    field :collaborator_notes, list_of(:note), name: "contributor_notes"
   end
 
   object :msg do
@@ -85,6 +86,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notes.create_note/3
     end
 
+    field :update_note, :note do
+      arg :input, non_null(:update_note_input)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notes.update_note/3
+    end
+
     # End mutation
   end
 
@@ -110,6 +117,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :create_note}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not create note"}]
+  end
+
+  def middleware(middleware, %{identifier: :update_note}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not update note"}]
   end
 
   def middleware(middleware, _field, _object) do

@@ -31,7 +31,8 @@ defmodule Erlnote.Notes.Note do
   def update_changeset(note, params) do
     note
     |> cast(params, [:deleted, :title, :body, :notepad_id])
-    |> validate_required([:deleted, :title])
+    |> validate_required([:title])
+    #|> validate_required([:deleted, :title])
     |> validate_length(:title, min: @min_title_len, max: @max_title_len)
   end
 

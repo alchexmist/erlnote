@@ -9,7 +9,8 @@ defmodule ErlnoteWeb.Resolvers.Accounts do
       %{current_user |
         owner_boards: Boards.list_is_owner_boards(current_user.id),
         boards: Boards.list_is_contributor_boards(current_user.id),
-        notes: Notes.list_is_owner_notes(current_user.id)
+        notes: Notes.list_is_owner_notes(current_user.id),
+        collaborator_notes: Notes.list_is_collaborator_notes(current_user.id)
       }
     }
     # {:ok, Map.put(current_user, :owner_boards, Boards.list_is_owner_boards(current_user.id))}

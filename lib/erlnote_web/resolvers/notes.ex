@@ -23,5 +23,32 @@ defmodule ErlnoteWeb.Resolvers.Notes do
     Notes.create_note(id)
   end
 
+  # mutation UpdateNote($noteData: UpdateNoteInput!) {
+  #   note: updateNote(input: $noteData) {
+  #     id
+  #     body
+  #     title
+  #   }
+  # }
+  # QUERY VARIABLES
+  # {
+  #   "noteData": {
+  #     "id": "1",
+  #     "body": "Contenido de mi notita",
+  #     "title": "Una de mis notitas"
+  #   }
+  # }
+  def update_note(_, %{input: params}, %{context: context}) do
+    with(
+      %{current_user: %{id: user_id}} <- context,
+      %{id: n_id} <- params,
+      {note_id, _} <- Integer.parse(n_id)
+    ) do
+      Notes.update_note(user_id, note_id, params)
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
 
 end
