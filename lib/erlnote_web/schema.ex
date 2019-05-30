@@ -24,12 +24,89 @@ defmodule ErlnoteWeb.Schema do
     field :msg, non_null(:string)
   end
 
+  interface :accessible_entity do
+    field :owner_id, non_null(:id)
+    field :user_id, non_null(:id)
+    field :can_read, :boolean
+    field :can_write, :boolean
+    resolve_type fn
+      %{note_id: _}, _ -> :note_access_info
+      %{tasklist_id: _}, _ -> :tasklist_access_info
+      %{board_id: _}, _ -> :board_access_info
+      _, _ -> nil
+    end
+  end
+
+  object :note_access_info do
+    field :note_id, non_null(:id)
+    field :owner_id, non_null(:id)
+    field :user_id, non_null(:id)
+    field :can_read, :boolean
+    field :can_write, :boolean
+
+    interface :accessible_entity
+  end
+  
+  object :tasklist_access_info do
+    field :tasklist_id, non_null(:id)
+    field :owner_id, non_null(:id)
+    field :user_id, non_null(:id)
+    field :can_read, :boolean
+    field :can_write, :boolean
+
+    interface :accessible_entity
+  end
+
+  object :board_access_info do
+    field :board_id, non_null(:id)
+    field :owner_id, non_null(:id)
+    field :user_id, non_null(:id)
+    field :can_read, :boolean
+    field :can_write, :boolean
+
+    interface :accessible_entity
+  end
+
+  enum :access_info_entity_type do
+    value :board
+    value :tasklist
+    value :note
+  end
+
   query do
     import_fields :accounts_queries
 
     field :me, :user do
       middleware Middleware.Authorize
       resolve &Resolvers.Accounts.me/3
+    end
+
+    # query {
+    #   getAccessInfo(entityId: "1", entityType: NOTE) {
+    #     ... on NoteAccessInfo {
+    #       ownerId
+    #       userId
+    #       canRead
+    #       canWrite
+    #       noteId
+    #     }
+    #   }
+    # }
+    field :get_access_info, :accessible_entity do
+      arg :entity_type, non_null(:access_info_entity_type)
+      arg :entity_id, non_null(:id)
+      middleware Middleware.Authorize
+      resolve fn _, %{entity_type: et, entity_id: eid}, %{context: %{current_user: %{id: user_id}}} ->
+        with(
+          {eid, _} <- Integer.parse(eid)
+        ) do
+          case et do
+            :note -> Erlnote.Notes.get_access_info(user_id, eid)
+          end
+        else
+          _ -> {:error, "Invalid data"}
+        end  
+      end
     end
 
     # End query

@@ -266,6 +266,20 @@ defmodule Erlnote.Notes do
     end
   end
 
+  def get_access_info(user_id, note_id) when is_integer(user_id) and is_integer(note_id) do
+      case {can_read, can_write} = can_read_or_write?(user_id, note_id) do
+        {false, false} -> {:error, "unauthorized"}
+        _ ->
+          case note = get_note(note_id) do
+            nil -> {:error, "invalid data"}
+            _ ->
+              r = %{note_id: note.id, owner_id: note.user_id, user_id: user_id, can_read: can_read, can_write: can_write}
+              IO.inspect r
+              {:ok, r}
+          end
+      end
+  end
+
   @doc """
   Checks if note can be written by the contributor.
 
