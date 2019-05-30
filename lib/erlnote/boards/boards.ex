@@ -110,6 +110,20 @@ defmodule Erlnote.Boards do
     Repo.one(from b in Board, where: b.id == ^id and b.deleted == false)
   end
 
+  def get_access_info(user_id, board_id) when is_integer(user_id) and is_integer(board_id) do
+    case  board = get_board(board_id) do
+      nil -> {:error, "invalid data"}
+      _ ->
+        cond do
+          board.owner == user_id or not is_nil(Repo.one(from u in assoc(board, :users), where: u.id == ^user_id)) ->
+            {:ok, %{board_id: board.id, owner_id: board.owner, user_id: user_id, can_read: true, can_write: true}}
+          true ->
+            {:error, "unauthorized"}
+        end
+    end
+
+  end
+
   @doc """
   Creates a empty board. Board owner == User ID.
 

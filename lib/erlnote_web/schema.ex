@@ -92,6 +92,17 @@ defmodule ErlnoteWeb.Schema do
     #     }
     #   }
     # }
+    # query {
+    #   getAccessInfo(entityId: "2", entityType: BOARD) {
+    #     ... on BoardAccessInfo {
+    #       ownerId
+    #       userId
+    #       canRead
+    #       canWrite
+    #       boardId
+    #     }
+    #   }
+    # }
     field :get_access_info, :accessible_entity do
       arg :entity_type, non_null(:access_info_entity_type)
       arg :entity_id, non_null(:id)
@@ -102,6 +113,7 @@ defmodule ErlnoteWeb.Schema do
         ) do
           case et do
             :note -> Erlnote.Notes.get_access_info(user_id, eid)
+            :board -> Erlnote.Boards.get_access_info(user_id, eid)
           end
         else
           _ -> {:error, "Invalid data"}
