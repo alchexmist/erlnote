@@ -123,18 +123,6 @@ defmodule Erlnote.Tasks do
     end
   end
 
-  @doc """
-  Updates a tasklist.
-
-  ## Examples
-
-      iex> update_tasklist(tasklist, %{field: new_value})
-      {:ok, %Tasklist{}}
-
-      iex> update_tasklist(tasklist, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
   defp update_tasklist(%Tasklist{} = tasklist, attrs) when is_map(tasklist) and is_map(attrs) do
     tasklist
     |> Tasklist.update_changeset(attrs)
@@ -353,6 +341,20 @@ defmodule Erlnote.Tasks do
     end
   end
 
+  def get_access_info(user_id, tasklist_id) when is_integer(user_id) and is_integer(tasklist_id) do
+    case {can_read, can_write} = can_read_or_write?(user_id, tasklist_id) do
+      {false, false} -> {:error, "unauthorized"}
+      _ ->
+        case tasklist = get_tasklist(tasklist_id) do
+          nil -> {:error, "invalid data"}
+          _ ->
+            r = %{tasklist_id: tasklist.id, owner_id: tasklist.user_id, user_id: user_id, can_read: can_read, can_write: can_write}
+            IO.inspect r
+            {:ok, r}
+        end
+    end
+end
+
   @doc """
   Checks if tasklist can be written by the contributor.
 
@@ -362,10 +364,10 @@ defmodule Erlnote.Tasks do
       true
 
       iex> can_write?(bad_user_id, tasklist_id)
-      {false, false}
+      false
 
       iex> can_write?(user_id, bad_tasklist_id)
-      {false, false}
+      false
 
   """
   def can_write?(user_id, tasklist_id) do
@@ -381,10 +383,10 @@ defmodule Erlnote.Tasks do
       true
 
       iex> can_read?(bad_user_id, tasklist_id)
-      {false, false}
+      false
 
       iex> can_read?(user_id, bad_tasklist_id)
-      {false, false}
+      false
 
   """
   def can_read?(user_id, tasklist_id) do
