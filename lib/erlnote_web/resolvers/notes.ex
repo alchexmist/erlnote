@@ -51,6 +51,46 @@ defmodule ErlnoteWeb.Resolvers.Notes do
     end
   end
 
+  # mutation UpdateNoteAccess($noteAccessData: UpdateNoteAccessInput!) {
+  #   updateNoteAccess(input: $noteAccessData) {
+  #     ... on NoteAccessInfo {
+  #       ownerId
+  #       userId
+  #       canRead
+  #       canWrite
+  #       noteId
+  #     }
+  #   }
+  # }
+  # QUERY VARIABLES
+  # {
+  #   "noteAccessData": {
+  #     "user_id": "2",
+  #     "note_id": "8",
+  #     "canRead": true,
+  #     "canWrite": false
+  #   }
+  # }
+  def update_note_access(_, %{input: params}, %{context: context}) do
+    with(
+      %{current_user: %{id: current_user_id}} <- context,
+      %{user_id: user_id, note_id: note_id, can_read: can_read, can_write: can_write} <- params,
+      {note_id, _} <- Integer.parse(note_id),
+      note when not is_nil(note) <- Notes.get_note(note_id),
+      {user_id, _} <- Integer.parse(user_id)
+    ) do
+      if note.user_id == current_user_id do
+        Notes.set_can_read_from_note(user_id, note_id, can_read)
+        Notes.set_can_write_to_note(user_id, note_id, can_write)
+        Notes.get_access_info(user_id, note_id)
+      else
+        {:error, "unauthorized"}
+      end
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
   # mutation AddNoteContributor($data: AddNoteContributorFilter!){
   #   addNoteContributor(filter: $data) {
   #     msg

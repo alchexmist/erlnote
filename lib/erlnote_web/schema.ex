@@ -205,6 +205,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notes.delete_user/3
     end
 
+    field :update_note_access, :accessible_entity do
+      arg :input, non_null(:update_note_access_input)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notes.update_note_access/3
+    end
+
     # End mutation
   end
 
@@ -242,6 +248,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :delete_note_user}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not delete note user"}]
+  end
+
+  def middleware(middleware, %{identifier: :update_note_access}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not update note"}]
   end
 
   def middleware(middleware, _field, _object) do

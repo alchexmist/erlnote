@@ -32,4 +32,11 @@ defmodule ErlnoteWeb.Schema.NotesTypes do
     field :can_write, non_null(:boolean)
   end
 
+  input_object :update_note_access_input do
+    field :user_id, non_null(:id)
+    field :note_id, non_null(:id)
+    field :can_read, non_null(:boolean)
+    field :can_write, non_null(:boolean)
+  end
+
 end
