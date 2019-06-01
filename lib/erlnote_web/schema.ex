@@ -5,7 +5,7 @@ defmodule ErlnoteWeb.Schema do
   import_types __MODULE__.BoardsTypes
   import_types __MODULE__.NotesTypes
   import_types __MODULE__.TagsTypes
-  
+
   alias ErlnoteWeb.Resolvers
   alias ErlnoteWeb.Schema.Middleware
 
@@ -212,6 +212,13 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notes.update_note_access/3
     end
 
+    field :link_tag_to_note, :msg do
+      arg :note_id, non_null(:id)
+      arg :tag_name, non_null(:string)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notes.link_tag/3
+    end
+
     # End mutation
   end
 
@@ -253,6 +260,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :update_note_access}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not update note"}]
+  end
+
+  def middleware(middleware, %{identifier: :link_tag_to_note}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not link tag to note"}]
   end
 
   def middleware(middleware, _field, _object) do

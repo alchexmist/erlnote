@@ -366,13 +366,12 @@ defmodule Erlnote.Notes do
       note when not is_nil(note) <- get_note(note_id),
       true <- can_write?(user_id, note_id)
     ) do
-      
       cond do
         is_nil(Repo.one(from t in assoc(note, :tags), where: t.name == ^tag_name)) ->
           case {_, target_tag} = Tags.create_tag(tag_name) do
             {:ok, %Tag{}} ->
               Repo.insert(
-                          NoteTag.changeset(%NoteTag{}, %{note_id: note.id, tag_id: target_tag.id})
+                NoteTag.changeset(%NoteTag{}, %{note_id: note.id, tag_id: target_tag.id})
               )
               # Return {:ok, _} o {:error, changeset}
             _ -> {:error, target_tag}

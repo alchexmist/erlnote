@@ -174,4 +174,17 @@ defmodule ErlnoteWeb.Resolvers.Notes do
     end
   end
 
+  def link_tag(_, %{note_id: note_id, tag_name: tag_name}, %{context: %{current_user: %{id: id}}}) do
+    with(
+      {note_id, _} <- Integer.parse(note_id)
+    ) do
+      case r = Erlnote.Notes.link_tag_to_note(note_id, id, tag_name) do
+        {:ok, _} -> {:ok, %{msg: "linked"}}
+        _ -> r
+      end
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
 end
