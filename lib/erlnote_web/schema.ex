@@ -19,6 +19,7 @@ defmodule ErlnoteWeb.Schema do
     field :boards, list_of(:board), name: "contributor_boards"
     field :notes, list_of(:note), name: "owner_notes"
     field :collaborator_notes, list_of(:note), name: "contributor_notes"
+    field :notepads, list_of(:notepad)
   end
 
   object :msg do

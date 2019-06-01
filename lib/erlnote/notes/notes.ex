@@ -504,7 +504,7 @@ defmodule Erlnote.Notes do
   """
   def list_notepads(user_id) when is_integer(user_id) do
     with(
-      user when not is_nil(user) <- (Accounts.get_user_by_id(user_id) |> Repo.preload(:notepads))
+      user when not is_nil(user) <- (Accounts.get_user_by_id(user_id) |> Repo.preload(:notepads, force: true))
     ) do
       user.notepads
     else
@@ -890,6 +890,13 @@ defmodule Erlnote.Notes do
     cond do
       user_id == notepad.user_id -> delete_notepad(notepad)
       true -> {:error, "Permission denied."}
+    end
+  end
+
+  def get_notes_in_notepad(notepad_id) when is_integer(notepad_id) do
+    case n = get_notepad(notepad_id) do
+      nil -> []
+      _ -> (n |> (Repo.preload(:notes, force: true))).notes
     end
   end
 
