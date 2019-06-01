@@ -187,4 +187,18 @@ defmodule ErlnoteWeb.Resolvers.Notes do
     end
   end
 
+  def remove_tag(_, %{note_id: note_id, tag_name: tag_name}, %{context: %{current_user: %{id: id}}}) do
+    with(
+      {note_id, _} <- Integer.parse(note_id)
+    ) do
+      case r = Erlnote.Notes.remove_tag_from_note(note_id, id, tag_name) do
+        %{remove_tag_from_note: _, delete_tag: _} -> {:ok, %{msg: "deleted"}}
+        :ok -> {:error, "tag name not found"}
+        _ -> r
+      end
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
 end

@@ -219,6 +219,13 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notes.link_tag/3
     end
 
+    field :remove_tag_from_note, :msg do
+      arg :note_id, non_null(:id)
+      arg :tag_name, non_null(:string)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notes.remove_tag/3
+    end
+
     # End mutation
   end
 
@@ -264,6 +271,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :link_tag_to_note}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not link tag to note"}]
+  end
+
+  def middleware(middleware, %{identifier: :remove_tag_from_note}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not remove tag from note"}]
   end
 
   def middleware(middleware, _field, _object) do
