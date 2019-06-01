@@ -4,7 +4,8 @@ defmodule ErlnoteWeb.Schema do
   import_types __MODULE__.AccountsTypes
   import_types __MODULE__.BoardsTypes
   import_types __MODULE__.NotesTypes
-
+  import_types __MODULE__.TagsTypes
+  
   alias ErlnoteWeb.Resolvers
   alias ErlnoteWeb.Schema.Middleware
 

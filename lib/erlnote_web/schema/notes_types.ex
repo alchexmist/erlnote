@@ -5,6 +5,11 @@ defmodule ErlnoteWeb.Schema.NotesTypes do
     field :id, :id
     field :body, :string
     field :title, :string
+    field :tags, list_of(:tag) do
+      resolve fn note, _, _ ->
+        {:ok, Erlnote.Notes.get_tags_from_note(note.id)}
+      end
+    end
   end
 
   input_object :update_note_input do
