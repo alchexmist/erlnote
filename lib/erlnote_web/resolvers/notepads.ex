@@ -100,12 +100,36 @@ defmodule ErlnoteWeb.Resolvers.Notepads do
     end
   end
 
+  # mutation {
+  #   linkTagToNotepad(notepadId: "3", tagName: "compartido") {
+  #     msg
+  #   }
+  # } 
   def link_tag(_, %{notepad_id: notepad_id, tag_name: tag_name}, %{context: %{current_user: %{id: id}}}) do
     with(
       {notepad_id, _} <- Integer.parse(notepad_id)
     ) do
       case r = Erlnote.Notes.link_tag_to_notepad(notepad_id, id, tag_name) do
         {:ok, _} -> {:ok, %{msg: "linked"}}
+        _ -> r
+      end
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
+  # mutation {
+  #   removeTagFromNotepad(notepadId: "3", tagName: "compartido") {
+  #     msg
+  #   }
+  # } 
+  def remove_tag(_, %{notepad_id: notepad_id, tag_name: tag_name}, %{context: %{current_user: %{id: id}}}) do
+    with(
+      {notepad_id, _} <- Integer.parse(notepad_id)
+    ) do
+      case r = Erlnote.Notes.remove_tag_from_notepad(notepad_id, id, tag_name) do
+        %{remove_tag_from_notepad: _, delete_tag: _} -> {:ok, %{msg: "deleted"}}
+        :ok -> {:error, "tag name not found"}
         _ -> r
       end
     else

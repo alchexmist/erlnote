@@ -261,6 +261,13 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notepads.link_tag/3
     end
 
+    field :remove_tag_from_notepad, :msg do
+      arg :notepad_id, non_null(:id)
+      arg :tag_name, non_null(:string)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notepads.remove_tag/3
+    end
+
     # End mutation
   end
 
@@ -330,6 +337,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :link_tag_to_notepad}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not link tag to notepad"}]
+  end
+
+  def middleware(middleware, %{identifier: :remove_tag_from_notepad}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not remove tag from notepad"}]
   end
 
   def middleware(middleware, _field, _object) do
