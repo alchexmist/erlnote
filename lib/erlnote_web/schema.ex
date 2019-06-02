@@ -268,6 +268,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notepads.remove_tag/3
     end
 
+    field :delete_notepad, :notepad do
+      arg :notepad_id, non_null(:id)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notepads.delete_notepad/3
+    end
+
     # End mutation
   end
 
@@ -341,6 +347,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :remove_tag_from_notepad}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not remove tag from notepad"}]
+  end
+
+  def middleware(middleware, %{identifier: :delete_notepad}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not delete notepad"}]
   end
 
   def middleware(middleware, _field, _object) do

@@ -137,5 +137,17 @@ defmodule ErlnoteWeb.Resolvers.Notepads do
     end
   end
 
+  def delete_notepad(_, %{notepad_id: notepad_id}, %{context: context}) do
+    with(
+      %{current_user: %{id: user_id}} <- context,
+      {notepad_id, _} <- Integer.parse(notepad_id),
+      notepad when not is_nil(notepad) <- Erlnote.Notes.get_notepad(notepad_id)
+    ) do
+      Notes.delete_notepad(notepad, user_id)
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
 end
 
