@@ -54,6 +54,17 @@ defmodule ErlnoteWeb.Resolvers.Notepads do
     end
   end
 
+  # mutation {
+  #   addNoteToNotepad(noteId: "9", notepadId: "3") {
+  #     id
+  #     title
+  #     body
+  #     notepad {
+  #       id
+  #       name
+  #     }
+  #   }
+  # } 
   def add_note(_, %{note_id: note_id, notepad_id: notepad_id}, %{context: context}) do
     with(
       %{current_user: %{id: user_id}} <- context,
@@ -66,6 +77,17 @@ defmodule ErlnoteWeb.Resolvers.Notepads do
     end
   end
 
+  # mutation {
+  #   deleteNoteFromNotepad(noteId: "9", notepadId: "3") {
+  #     id
+  #     title
+  #     body
+  #     notepad {
+  #       id
+  #       name
+  #     }
+  #   }
+  # } 
   def delete_note(_, %{note_id: note_id, notepad_id: notepad_id}, %{context: context}) do
     with(
       %{current_user: %{id: user_id}} <- context,
