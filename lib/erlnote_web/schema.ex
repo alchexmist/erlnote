@@ -6,6 +6,7 @@ defmodule ErlnoteWeb.Schema do
   import_types __MODULE__.NotesTypes
   import_types __MODULE__.NotepadsTypes
   import_types __MODULE__.TagsTypes
+  import_types __MODULE__.TasklistsTypes
 
   alias ErlnoteWeb.Resolvers
   alias ErlnoteWeb.Schema.Middleware
@@ -274,6 +275,11 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notepads.delete_notepad/3
     end
 
+    field :create_tasklist, :tasklist do
+      middleware Middleware.Authorize
+      resolve &Resolvers.Tasklists.create_tasklist/3
+    end
+
     # End mutation
   end
 
@@ -351,6 +357,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :delete_notepad}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not delete notepad"}]
+  end
+
+  def middleware(middleware, %{identifier: :create_tasklist}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not create tasklist"}]
   end
 
   def middleware(middleware, _field, _object) do

@@ -137,6 +137,12 @@ defmodule ErlnoteWeb.Resolvers.Notepads do
     end
   end
 
+  # mutation {
+  #   deleteNotepad(notepadId: "2") {
+  #     id
+  #     name
+  #   }
+  # }
   def delete_notepad(_, %{notepad_id: notepad_id}, %{context: context}) do
     with(
       %{current_user: %{id: user_id}} <- context,
