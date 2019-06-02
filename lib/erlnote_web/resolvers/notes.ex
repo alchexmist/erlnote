@@ -201,4 +201,28 @@ defmodule ErlnoteWeb.Resolvers.Notes do
     end
   end
 
+  # mutation CreateNotepad {
+  #   notepad: createNotepad {
+  #     id
+  #     name
+  #     notes {
+  #       id
+  #       body
+  #       title
+  #       tags {
+  #         id
+  #         name
+  #       }
+  #     }
+  #     tags {
+  #       id
+  #       name
+  #     }
+  #   }
+  # }
+  # Valid Authentication Token: Required (HTTP Header).
+  def create_notepad(_, _, %{context: %{current_user: %{id: id}}}) do
+    Notes.create_notepad(id)
+  end
+
 end
