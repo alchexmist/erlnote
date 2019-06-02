@@ -232,6 +232,13 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notes.create_notepad/3
     end
 
+    field :update_notepad, :notepad do
+      arg :notepad_id, non_null(:id)
+      arg :new_name, non_null(:string)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notes.update_notepad/3
+    end
+
     # End mutation
   end
 
@@ -285,6 +292,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :create_notepad}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not create notepad"}]
+  end
+
+  def middleware(middleware, %{identifier: :update_notepad}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not update notepad"}]
   end
 
   def middleware(middleware, _field, _object) do

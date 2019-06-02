@@ -225,4 +225,31 @@ defmodule ErlnoteWeb.Resolvers.Notes do
     Notes.create_notepad(id)
   end
 
+  # mutation UpdateNotepad {
+  #   updateNotepad(notepadId: "3", newName: "Bloc de notas tres!") {
+  #     id
+  #     name
+  #     notes {
+  #       id
+  #       title
+  #       body
+  #     }
+  #     tags {
+  #       id
+  #       name
+  #     }
+  #   }
+  # }
+  def update_notepad(_, %{notepad_id: notepad_id, new_name: name}, %{context: context}) do
+    with(
+      %{current_user: %{id: user_id}} <- context,
+      {notepad_id, _} <- Integer.parse(notepad_id),
+      target_notepad when not is_nil(target_notepad) <- Erlnote.Notes.get_notepad(notepad_id)
+    ) do
+      Notes.update_notepad(user_id, target_notepad, %{name: name})
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
 end
