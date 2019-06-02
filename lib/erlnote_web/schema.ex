@@ -247,6 +247,13 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notepads.add_note/3
     end
 
+    field :delete_note_from_notepad, :note do
+      arg :note_id, non_null(:id)
+      arg :notepad_id, non_null(:id)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notepads.delete_note/3
+    end
+
 
     # End mutation
   end
@@ -308,6 +315,10 @@ defmodule ErlnoteWeb.Schema do
   end
 
   def middleware(middleware, %{identifier: :add_note_to_notepad}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not add note to notepad"}]
+  end
+
+  def middleware(middleware, %{identifier: :delete_note_from_notepad}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not add note to notepad"}]
   end
 
