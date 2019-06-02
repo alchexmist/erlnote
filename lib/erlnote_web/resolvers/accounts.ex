@@ -3,7 +3,8 @@ defmodule ErlnoteWeb.Resolvers.Accounts do
   alias Erlnote.Accounts.User
   alias Erlnote.Boards
   alias Erlnote.Notes
-
+  alias Erlnote.Tasks
+  
   def me(_, _, %{context: %{current_user: current_user}}) do
     {:ok,
       %{current_user |
@@ -11,7 +12,8 @@ defmodule ErlnoteWeb.Resolvers.Accounts do
         boards: Boards.list_is_contributor_boards(current_user.id),
         notes: Notes.list_is_owner_notes(current_user.id),
         collaborator_notes: Notes.list_is_collaborator_notes(current_user.id),
-        notepads: Notes.list_notepads(current_user.id)
+        notepads: Notes.list_notepads(current_user.id),
+        owner_tasklists: Tasks.list_is_owner_tasklists(current_user.id)
       }
     }
     # {:ok, Map.put(current_user, :owner_boards, Boards.list_is_owner_boards(current_user.id))}
