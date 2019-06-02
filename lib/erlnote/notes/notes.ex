@@ -528,6 +528,10 @@ defmodule Erlnote.Notes do
   """
   def get_notepad(id) when is_integer(id), do: Repo.get(Notepad, id)
 
+  def get_notepad_from_note(%Note{} = n) do
+    get_notepad(n.notepad_id)
+  end
+
   @doc """
   Creates a notepad. Notepad owner == User ID.
 
