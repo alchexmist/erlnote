@@ -118,8 +118,8 @@ defmodule ErlnoteWeb.Resolvers.Tasklists do
   # QUERY VARIABLES
   # {
   #   "tasklistAccessData": {
-  #     "user_id": "2",
-  #     "tasklist_id": "5",
+  #     "userId": "2",
+  #     "tasklistId": "5",
   #     "canRead": true,
   #     "canWrite": false
   #   }

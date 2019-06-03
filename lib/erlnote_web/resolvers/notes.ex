@@ -65,8 +65,8 @@ defmodule ErlnoteWeb.Resolvers.Notes do
   # QUERY VARIABLES
   # {
   #   "noteAccessData": {
-  #     "user_id": "2",
-  #     "note_id": "8",
+  #     "userId": "2",
+  #     "noteId": "8",
   #     "canRead": true,
   #     "canWrite": false
   #   }
