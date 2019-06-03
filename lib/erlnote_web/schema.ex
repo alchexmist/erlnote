@@ -299,6 +299,13 @@ defmodule ErlnoteWeb.Schema do
       middleware Middleware.Authorize
       resolve &Resolvers.Tasklists.add_contributor/3
     end
+
+    field :update_tasklist_access, :accessible_entity do
+      arg :input, non_null(:update_tasklist_access_input)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Tasklists.update_tasklist_access/3
+    end
+
     # End mutation
   end
 
@@ -339,7 +346,7 @@ defmodule ErlnoteWeb.Schema do
   end
 
   def middleware(middleware, %{identifier: :update_note_access}, %{identifier: :mutation}) do
-    middleware ++ [{Middleware.ChangesetErrors, "Could not update note"}]
+    middleware ++ [{Middleware.ChangesetErrors, "Could not update note access data"}]
   end
 
   def middleware(middleware, %{identifier: :link_tag_to_note}, %{identifier: :mutation}) do
@@ -392,6 +399,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :add_tasklist_contributor}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not add tasklist contributor"}]
+  end
+
+  def middleware(middleware, %{identifier: :update_tasklist_access}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not update tasklist access data"}]
   end
 
   def middleware(middleware, _field, _object) do
