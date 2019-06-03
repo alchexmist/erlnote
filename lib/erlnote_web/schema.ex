@@ -282,6 +282,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Tasklists.create_tasklist/3
     end
 
+    field :update_tasklist, :tasklist do
+      arg :input, non_null(:update_tasklist_input)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Tasklists.update_tasklist/3
+    end
+
     # End mutation
   end
 
@@ -363,6 +369,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :create_tasklist}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not create tasklist"}]
+  end
+
+  def middleware(middleware, %{identifier: :update_tasklist}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not update tasklist"}]
   end
 
   def middleware(middleware, _field, _object) do
