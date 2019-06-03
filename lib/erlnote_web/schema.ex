@@ -294,6 +294,11 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Tasklists.delete_user/3
     end
 
+    field :add_tasklist_contributor, :msg do
+      arg :filter, non_null(:add_tasklist_contributor_filter)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Tasklists.add_contributor/3
+    end
     # End mutation
   end
 
@@ -383,6 +388,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :delete_tasklist_user}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not delete tasklist user"}]
+  end
+
+  def middleware(middleware, %{identifier: :add_tasklist_contributor}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not add tasklist contributor"}]
   end
 
   def middleware(middleware, _field, _object) do

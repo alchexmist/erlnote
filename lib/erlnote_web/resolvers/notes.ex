@@ -102,8 +102,8 @@ defmodule ErlnoteWeb.Resolvers.Notes do
   #     "type": "ID",
   #     "value": "2",
   #     "nid": "8",
-  #     "canRead": "true",
-  #     "canWrite": "true"
+  #     "canRead": true,
+  #     "canWrite": true
   #   }
   # }
   # RESULT

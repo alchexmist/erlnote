@@ -60,4 +60,48 @@ defmodule ErlnoteWeb.Resolvers.Tasklists do
     end
   end
 
+  # mutation AddTasklistContributor($data: AddTasklistContributorFilter!){
+  #   addTasklistContributor(filter: $data) {
+  #     msg
+  #   }
+  # }
+  # QUERY VARIABLES
+  # {
+  #   "data": {
+  #     "type": "ID",
+  #     "value": "2",
+  #     "tid": "5",
+  #     "canRead": true,
+  #     "canWrite": true
+  #   }
+  # }
+  def add_contributor(_, %{filter: opts}, %{context: context}) do
+    r = case {opts, context} do
+      {%{type: :id, value: i, tid: tid, can_read: cr, can_write: cw}, %{current_user: %{id: owner_id}}} when is_binary(i) ->
+        with(
+          {i, _} <- Integer.parse(i),
+          {tid, _} <- Integer.parse(tid),
+          user when not is_nil(user) <- Accounts.get_user_by_id(i)
+        ) do
+          Tasks.link_tasklist_to_user(owner_id, tid, user.id, cr, cw)
+        else
+          _ -> {:error, "Invalid data"}
+        end
+      {%{type: :username, value: u, tid: tid, can_read: cr, can_write: cw}, %{current_user: %{id: owner_id}}} when is_binary(u) ->
+        with(
+          {tid, _} <- Integer.parse(tid),
+          user when not is_nil(user) <- Accounts.get_user_by_username(u)
+        ) do
+          Tasks.link_tasklist_to_user(owner_id, tid, user.id, cr, cw)
+        else
+          _ -> {:error, "Invalid data"}
+        end
+    end
+
+    case r do
+      {:ok, _} -> {:ok, %{msg: "ok"}}
+      _ -> r
+    end
+  end
+
 end
