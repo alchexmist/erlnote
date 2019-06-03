@@ -7,6 +7,7 @@ defmodule ErlnoteWeb.Schema do
   import_types __MODULE__.NotepadsTypes
   import_types __MODULE__.TagsTypes
   import_types __MODULE__.TasklistsTypes
+  import_types __MODULE__.TasksTypes
 
   alias ErlnoteWeb.Resolvers
   alias ErlnoteWeb.Schema.Middleware

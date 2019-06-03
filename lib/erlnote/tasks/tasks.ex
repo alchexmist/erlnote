@@ -413,6 +413,22 @@ end
     end
   end
 
+  def list_tasks_from_tasklist(user_id, tasklist_id) when is_integer(tasklist_id) do
+    with(
+      tasklist when not is_nil(tasklist) <- get_tasklist(tasklist_id),
+      can_read <- can_read?(user_id, tasklist_id)
+    ) do
+      if can_read do
+        (from t in assoc(tasklist, :tasks)) |> Repo.all
+      else
+        {:error, "unauthorized"}
+      end
+    else
+      nil -> {:error, "tasklist ID not found"}
+      _ -> {:error, "invalid data"}
+    end
+  end
+
   @doc """
   Gets a single task.
 
