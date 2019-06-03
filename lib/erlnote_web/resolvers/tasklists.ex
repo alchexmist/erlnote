@@ -38,4 +38,26 @@ defmodule ErlnoteWeb.Resolvers.Tasklists do
     end
   end
 
+  # mutation DeleteTasklistUser($data: ID!) {
+  #   deleteTasklistUser(tasklistId: $data) {
+  #     id
+  #     title
+  #   }
+  # }
+  # QUERY VARIABLES
+  # {
+  #   "data": "4"
+  # }
+  def delete_user(_, %{tasklist_id: tasklist_id}, %{context: context}) do
+    with(
+      {tasklist_id, _} <- Integer.parse(tasklist_id),
+      %{current_user: %{id: user_id}} <- context,
+      tasklist when not is_nil(tasklist) <- Tasks.get_tasklist(tasklist_id)
+    ) do
+      Tasks.delete_tasklist(tasklist, user_id)
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
 end

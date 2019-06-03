@@ -288,6 +288,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Tasklists.update_tasklist/3
     end
 
+    field :delete_tasklist_user, :tasklist do
+      arg :tasklist_id, non_null(:id)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Tasklists.delete_user/3
+    end
+
     # End mutation
   end
 
@@ -373,6 +379,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :update_tasklist}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not update tasklist"}]
+  end
+
+  def middleware(middleware, %{identifier: :delete_tasklist_user}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not delete tasklist user"}]
   end
 
   def middleware(middleware, _field, _object) do
