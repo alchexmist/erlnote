@@ -309,6 +309,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Tasklists.update_tasklist_access/3
     end
 
+    field :update_task_in_tasklist, :task do
+      arg :input, non_null(:update_task_input)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Tasks.update_task/3
+    end
+
     # End mutation
   end
 
@@ -406,6 +412,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :update_tasklist_access}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not update tasklist access data"}]
+  end
+
+  def middleware(middleware, %{identifier: :update_task_in_tasklist}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not update task in tasklist"}]
   end
 
   def middleware(middleware, _field, _object) do
