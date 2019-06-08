@@ -4,6 +4,11 @@ defmodule ErlnoteWeb.Schema.TasklistsTypes do
   object :tasklist do
     field :id, :id
     field :title, :string
+    field :tasks, list_of(:task) do
+      resolve fn tasklist, _, _ ->
+        {:ok, Erlnote.Tasks.list_tasks_from_tasklist(tasklist.id)}
+      end
+    end
   end
   
   input_object :update_tasklist_input do

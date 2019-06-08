@@ -1,6 +1,8 @@
 defmodule ErlnoteWeb.Schema do
   use Absinthe.Schema
 
+  import_types Absinthe.Type.Custom
+  
   import_types __MODULE__.AccountsTypes
   import_types __MODULE__.BoardsTypes
   import_types __MODULE__.NotesTypes
