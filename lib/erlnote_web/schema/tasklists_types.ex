@@ -5,8 +5,11 @@ defmodule ErlnoteWeb.Schema.TasklistsTypes do
     field :id, :id
     field :title, :string
     field :tasks, list_of(:task) do
-      resolve fn tasklist, _, _ ->
-        {:ok, Erlnote.Tasks.list_tasks_from_tasklist(tasklist.id)}
+      resolve fn tasklist, _, %{context: %{current_user: %{id: user_id}}} ->
+        case r = Erlnote.Tasks.list_tasks_from_tasklist(user_id, tasklist.id) do
+          {:error, _} -> r
+          _ -> {:ok, r}
+        end
       end
     end
   end
