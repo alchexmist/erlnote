@@ -144,4 +144,36 @@ defmodule ErlnoteWeb.Resolvers.Tasklists do
     end
   end
 
+  # mutation {
+  #   linkTagToTasklist(tasklistId: "5", tagName: "compartido") {
+  #     msg
+  #   }
+  # }
+  def link_tag(_, %{tasklist_id: tasklist_id, tag_name: tag_name}, %{context: %{current_user: %{id: id}}}) do
+    with(
+      {tasklist_id, _} <- Integer.parse(tasklist_id)
+    ) do
+      case r = Erlnote.Tasks.link_tag_to_tasklist(tasklist_id, id, tag_name) do
+        {:ok, _} -> {:ok, %{msg: "linked"}}
+        _ -> r
+      end
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
+  def remove_tag(_, %{tasklist_id: tasklist_id, tag_name: tag_name}, %{context: %{current_user: %{id: id}}}) do
+    with(
+      {tasklist_id, _} <- Integer.parse(tasklist_id)
+    ) do
+      case r = Erlnote.Tasks.remove_tag_from_tasklist(tasklist_id, id, tag_name) do
+        %{remove_tag_from_tasklist: _, delete_tag: _} -> {:ok, %{msg: "deleted"}}
+        :ok -> {:error, "tag name not found"}
+        _ -> r
+      end
+    else
+      _ -> {:error, "Invalid data"}
+    end
+  end
+
 end

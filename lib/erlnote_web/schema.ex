@@ -328,6 +328,20 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Tasks.add_task/3
     end
 
+    field :link_tag_to_tasklist, :msg do
+      arg :tasklist_id, non_null(:id)
+      arg :tag_name, non_null(:string)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Tasklists.link_tag/3
+    end
+
+    field :remove_tag_from_tasklist, :msg do
+      arg :tasklist_id, non_null(:id)
+      arg :tag_name, non_null(:string)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Tasklists.remove_tag/3
+    end
+
     # End mutation
   end
 
@@ -437,6 +451,14 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :add_task_to_tasklist}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not add task to tasklist"}]
+  end
+
+  def middleware(middleware, %{identifier: :link_tag_to_tasklist}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not link tag to tasklist"}]
+  end
+
+  def middleware(middleware, %{identifier: :remove_tag_from_tasklist}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not remove tag from tasklist"}]
   end
 
   def middleware(middleware, _field, _object) do
