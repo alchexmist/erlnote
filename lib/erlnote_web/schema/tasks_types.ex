@@ -23,4 +23,14 @@ defmodule ErlnoteWeb.Schema.TasksTypes do
     field :name, :string
   end
 
+  input_object :add_task_input do
+    field :tasklist_id, non_null(:id)
+    field :state, non_null(:string)
+    field :description, :string
+    field :start_datetime, :datetime
+    field :end_datetime, :datetime
+    field :priority, non_null(:string)
+    field :name, non_null(:string)
+  end
+
 end

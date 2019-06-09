@@ -315,6 +315,19 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Tasks.update_task/3
     end
 
+    field :delete_task_from_tasklist, :task do
+      arg :task_id, non_null(:id)
+      arg :tasklist_id, non_null(:id)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Tasks.delete_task/3
+    end
+
+    field :add_task_to_tasklist, :task do
+      arg :input, non_null(:add_task_input)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Tasks.add_task/3
+    end
+
     # End mutation
   end
 
@@ -416,6 +429,14 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :update_task_in_tasklist}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not update task in tasklist"}]
+  end
+
+  def middleware(middleware, %{identifier: :delete_task_from_tasklist}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not delete task from tasklist"}]
+  end
+
+  def middleware(middleware, %{identifier: :add_task_to_tasklist}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not add task to tasklist"}]
   end
 
   def middleware(middleware, _field, _object) do
