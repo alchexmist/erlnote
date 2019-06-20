@@ -43,5 +43,11 @@ defmodule ErlnoteWeb.Endpoint do
     key: "_erlnote_key",
     signing_salt: "RiF5vK3K"
 
+  plug Corsica,
+    origins: "*",
+    log: [rejected: :error, invalid: :warn, accepted: :debug],
+    allow_headers: ["content-type"],
+    allow_credentials: true
+
   plug ErlnoteWeb.Router
 end
