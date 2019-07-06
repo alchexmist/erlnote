@@ -25,16 +25,33 @@ defmodule ErlnoteWeb.UserSocket do
   def connect(%{"token" => token} = _params, socket, _connect_info) do
     IO.inspect token
     case c = gen_context(token) do
-      %{current_user: _} ->
-        socket = Absinthe.Phoenix.Socket.put_options(socket, context: c)
-        {:ok, socket}
+      %{current_user: _} -> set_context(socket, c)
+      %{} -> set_context(socket, c)
       _ -> :error
     end
   end
 
-  def connect(_params, _socket, connect_info) do
-    IO.inspect connect_info
-    :error
+  def connect(_params, socket, connect_info) do
+    set_context(socket, %{})
+  end
+  # def connect(_params, _socket, connect_info) do
+  #   IO.inspect connect_info
+  #   :error
+  # end
+
+  # defp gen_context(token) do
+  #   with(
+  #     {:ok, data} <- ErlnoteWeb.Authentication.verify(token),
+  #     %{} = user <- get_user(data)
+  #   ) do
+  #     %{current_user: user}
+  #   else
+  #     _ -> :error
+  #   end
+  # end
+
+  defp set_context(socket, context) do
+    {:ok, Absinthe.Phoenix.Socket.put_options(socket, context: context)}
   end
 
   defp gen_context(token) do
@@ -44,7 +61,7 @@ defmodule ErlnoteWeb.UserSocket do
     ) do
       %{current_user: user}
     else
-      _ -> :error
+      _ -> %{}
     end
   end
 

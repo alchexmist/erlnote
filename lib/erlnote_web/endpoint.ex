@@ -46,7 +46,7 @@ defmodule ErlnoteWeb.Endpoint do
   plug Corsica,
     origins: "*",
     log: [rejected: :error, invalid: :warn, accepted: :debug],
-    allow_headers: ["content-type"],
+    allow_headers: ["content-type", "authorization"],
     allow_credentials: true
 
   plug ErlnoteWeb.Router
