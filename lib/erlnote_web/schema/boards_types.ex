@@ -28,4 +28,14 @@ defmodule ErlnoteWeb.Schema.BoardsTypes do
     field :bid, non_null(:id)
   end
 
+  @desc "Filtering options for delete contributor"
+  input_object :delete_board_contributor_filter do
+    @desc "ID or USERNAME"
+    field :type, non_null(:add_board_contributor_filter_type)
+    @desc "String value"
+    field :value, non_null(:string)
+    @desc "Target board ID"
+    field :bid, non_null(:id)
+  end
+
 end

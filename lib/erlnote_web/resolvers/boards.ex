@@ -112,6 +112,70 @@ defmodule ErlnoteWeb.Resolvers.Boards do
     end
   end
 
+  defp delete_contributor_priv(board_owner, board_id, user_id) when is_integer(board_owner) and is_integer(board_id) and is_integer(user_id) do
+    case {board_owner, Boards.get_board(board_id)} do
+      {_, nil} -> {:error, "Invalid board ID"}
+      {^user_id, b} -> Boards.delete_board(b, user_id)
+      _ -> {:error, "Invalid data"}
+    end
+  end
+  
+  # mutation DeleteBoardContributor($data: DeleteBoardContributorFilter!){
+  #   deleteBoardContributor(filter: $data) {
+  #     msg
+  #   }
+  # }
+  # QUERY VARIABLES
+  # {
+  #   "data": {
+  #     "type": "ID" o "USERNAME",
+  #     "value": "2" o "pepito",
+  #     "bid": "11"
+  #   }
+  # }
+  # RESULT
+  # {
+  #   "data": {
+  #     "deleteBoardContributor": {
+  #       "msg": "ok"
+  #     }
+  #   }
+  # }
+  def delete_contributor(_, %{filter: opts}, %{context: context}) do
+    r = case {opts, context} do
+      {%{type: :id, value: i, bid: bid}, %{current_user: %{id: owner_id}}} when is_binary(i) ->
+        with(
+          {i, _} <- Integer.parse(i),
+          {bid, _} <- Integer.parse(bid),
+          user when not is_nil(user) <- Accounts.get_user_by_id(i),
+          {:ok, %{owner_id: board_owner}} <- Boards.get_access_info(owner_id, user.id)
+        ) do
+
+          delete_contributor_priv(board_owner, bid, user.id)
+
+        else
+          _ -> {:error, "Invalid data"}
+        end
+      {%{type: :username, value: u, bid: bid}, %{current_user: %{id: owner_id}}} when is_binary(u) ->
+        with(
+          {bid, _} <- Integer.parse(bid),
+          user when not is_nil(user) <- Accounts.get_user_by_username(u),
+          {:ok, %{owner_id: board_owner}} <- Boards.get_access_info(owner_id, user.id)
+        ) do
+
+          delete_contributor_priv(board_owner, bid, user.id)
+
+        else
+          _ -> {:error, "Invalid data"}
+        end
+    end
+
+    case r do
+      {:ok, _} -> {:ok, %{msg: "ok"}}
+      _ -> r
+    end
+  end
+
   # mutation DeleteBoardUser($data: ID!) {
   #   deleteBoardUser(boardId: $data) {
   #     id

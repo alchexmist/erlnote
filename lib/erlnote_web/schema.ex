@@ -185,6 +185,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Boards.add_contributor/3
     end
 
+    field :delete_board_contributor, :msg do
+      arg :filter, non_null(:delete_board_contributor_filter)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Boards.delete_contributor/3
+    end
+
     field :delete_board_user, :board do
       arg :board_id, non_null(:id)
       middleware Middleware.Authorize
@@ -359,6 +365,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :add_board_contributor}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not add board contributor"}]
+  end
+
+  def middleware(middleware, %{identifier: :delete_board_contributor}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not delete board contributor"}]
   end
 
   def middleware(middleware, %{identifier: :delete_board_user}, %{identifier: :mutation}) do
