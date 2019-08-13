@@ -112,11 +112,12 @@ defmodule ErlnoteWeb.Resolvers.Boards do
     end
   end
 
-  defp delete_contributor_priv(board_owner, board_id, user_id) when is_integer(board_owner) and is_integer(board_id) and is_integer(user_id) do
-    case {board_owner, Boards.get_board(board_id)} do
+  defp delete_contributor_priv(current_user_id, board_owner_id, board_id, user_id) when is_integer(current_user_id) and is_integer(board_owner_id) and is_integer(board_id) and is_integer(user_id) do
+    case {current_user_id, Boards.get_board(board_id)} do
       {_, nil} -> {:error, "Invalid board ID"}
-      {^user_id, b} -> Boards.delete_board(b, user_id)
-      _ -> {:error, "Invalid data"}
+      {board_owner_id, b} -> Boards.delete_board(b, user_id)
+      {user_id, b} -> Boards.delete_board(b, user_id)
+      _ -> {:error, "Invalid data (delete_contributor_priv) current_user_id #{current_user_id} board_owner_id #{board_owner_id} board_id #{board_id} user_id #{user_id} "}
     end
   end
   
@@ -151,7 +152,7 @@ defmodule ErlnoteWeb.Resolvers.Boards do
           {:ok, %{owner_id: board_owner}} <- Boards.get_access_info(owner_id, user.id)
         ) do
 
-          delete_contributor_priv(board_owner, bid, user.id)
+          delete_contributor_priv(owner_id, board_owner, bid, user.id)
 
         else
           _ -> {:error, "Invalid data"}
@@ -163,7 +164,7 @@ defmodule ErlnoteWeb.Resolvers.Boards do
           {:ok, %{owner_id: board_owner}} <- Boards.get_access_info(owner_id, user.id)
         ) do
 
-          delete_contributor_priv(board_owner, bid, user.id)
+          delete_contributor_priv(owner_id, board_owner, bid, user.id)
 
         else
           _ -> {:error, "Invalid data"}
