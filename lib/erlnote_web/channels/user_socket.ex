@@ -31,7 +31,7 @@ defmodule ErlnoteWeb.UserSocket do
     end
   end
 
-  def connect(_params, socket, connect_info) do
+  def connect(_params, socket, _connect_info) do
     set_context(socket, %{})
   end
   # def connect(_params, _socket, connect_info) do

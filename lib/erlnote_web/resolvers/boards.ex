@@ -115,8 +115,8 @@ defmodule ErlnoteWeb.Resolvers.Boards do
   defp delete_contributor_priv(current_user_id, board_owner_id, board_id, user_id) when is_integer(current_user_id) and is_integer(board_owner_id) and is_integer(board_id) and is_integer(user_id) do
     case {current_user_id, Boards.get_board(board_id)} do
       {_, nil} -> {:error, "Invalid board ID"}
-      {board_owner_id, b} -> Boards.delete_board(b, user_id)
-      {user_id, b} -> Boards.delete_board(b, user_id)
+      {^board_owner_id, b} -> Boards.delete_board(b, user_id)
+      {^user_id, b} -> Boards.delete_board(b, user_id)
       _ -> {:error, "Invalid data (delete_contributor_priv) current_user_id #{current_user_id} board_owner_id #{board_owner_id} board_id #{board_id} user_id #{user_id} "}
     end
   end
