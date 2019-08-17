@@ -7,6 +7,13 @@ defmodule ErlnoteWeb.Schema.BoardsTypes do
     field :title, :string
   end
 
+  object :board_update do
+    field :id, :id
+    field :text, :string
+    field :title, :string
+    field :updated_by, :id
+  end
+
   input_object :update_board_input do
     field :id, non_null(:id)
     field :text, :string

@@ -56,7 +56,10 @@ defmodule ErlnoteWeb.Resolvers.Boards do
       #{user_id, _} <- Integer.parse(u_id),
       {board_id, _} <- Integer.parse(b_id)
     ) do
-      Boards.update_board(user_id, board_id, params)
+      case r = Boards.update_board(user_id, board_id, params) do
+        {:ok, board} -> {:ok, Map.put(Map.from_struct(board), :updated_by, user_id)}
+        _ -> r
+      end
     else
       _ -> {:error, "Invalid data"}
     end

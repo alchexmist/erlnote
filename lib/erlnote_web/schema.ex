@@ -173,7 +173,7 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Boards.create_board/3
     end
 
-    field :update_board, :board do
+    field :update_board, :board_update do
       arg :input, non_null(:update_board_input)
       middleware Middleware.Authorize
       resolve &Resolvers.Boards.update_board/3
@@ -497,7 +497,7 @@ defmodule ErlnoteWeb.Schema do
     #     text
     #   }
     # }
-    field :board_updated, :board do
+    field :board_updated, :board_update do
       arg :board_id, non_null(:id)
 
       config fn args, _context -> {:ok, topic: "board#{args.board_id}:updates"} end
