@@ -334,7 +334,7 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Tasks.add_task/3
     end
 
-    field :link_tag_to_tasklist, :msg do
+    field :link_tag_to_tasklist, :tag do
       arg :tasklist_id, non_null(:id)
       arg :tag_name, non_null(:string)
       middleware Middleware.Authorize

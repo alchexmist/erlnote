@@ -154,7 +154,8 @@ defmodule ErlnoteWeb.Resolvers.Tasklists do
       {tasklist_id, _} <- Integer.parse(tasklist_id)
     ) do
       case r = Erlnote.Tasks.link_tag_to_tasklist(tasklist_id, id, tag_name) do
-        {:ok, _} -> {:ok, %{msg: "linked"}}
+        # {:ok, _} -> {:ok, %{msg: "linked"}}
+        {:ok, _} -> {:ok, Erlnote.Tags.get_tag_by_name(tag_name)}
         _ -> r
       end
     else
