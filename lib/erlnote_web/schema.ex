@@ -214,6 +214,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notes.add_contributor/3
     end
 
+    field :delete_note_contributor, :msg do
+      arg :filter, non_null(:delete_note_contributor_filter)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Notes.delete_contributor/3
+    end
+
     field :delete_note_user, :note do
       arg :note_id, non_null(:id)
       middleware Middleware.Authorize
@@ -309,6 +315,12 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Tasklists.add_contributor/3
     end
 
+    field :delete_tasklist_contributor, :msg do
+      arg :filter, non_null(:delete_tasklist_contributor_filter)
+      middleware Middleware.Authorize
+      resolve &Resolvers.Tasklists.delete_contributor/3
+    end
+
     field :update_tasklist_access, :accessible_entity do
       arg :input, non_null(:update_tasklist_access_input)
       middleware Middleware.Authorize
@@ -387,6 +399,10 @@ defmodule ErlnoteWeb.Schema do
     middleware ++ [{Middleware.ChangesetErrors, "Could not add note contributor"}]
   end
 
+  def middleware(middleware, %{identifier: :delete_note_contributor}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not delete note contributor"}]
+  end
+
   def middleware(middleware, %{identifier: :delete_note_user}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not delete note user"}]
   end
@@ -445,6 +461,10 @@ defmodule ErlnoteWeb.Schema do
 
   def middleware(middleware, %{identifier: :add_tasklist_contributor}, %{identifier: :mutation}) do
     middleware ++ [{Middleware.ChangesetErrors, "Could not add tasklist contributor"}]
+  end
+
+  def middleware(middleware, %{identifier: :delete_tasklist_contributor}, %{identifier: :mutation}) do
+    middleware ++ [{Middleware.ChangesetErrors, "Could not delete tasklist contributor"}]
   end
 
   def middleware(middleware, %{identifier: :update_tasklist_access}, %{identifier: :mutation}) do

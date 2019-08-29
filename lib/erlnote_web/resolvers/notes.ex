@@ -143,6 +143,55 @@ defmodule ErlnoteWeb.Resolvers.Notes do
     end
   end
 
+  defp delete_contributor_priv(current_user_id, note_owner_id, note_id, user_id) when is_integer(current_user_id) and is_integer(note_owner_id) and is_integer(note_id) and is_integer(user_id) do
+    # user_id: ID del usuario que se quiere eliminar de la lista de tareas.
+    case {current_user_id, Notes.get_note(note_id)} do
+      {_, nil} -> {:error, "Invalid note ID"}
+      {^note_owner_id, n} -> Notes.delete_note(n, user_id)
+      {^user_id, n} -> Notes.delete_note(n, user_id)
+      _ -> {:error, "Invalid data (delete_contributor_priv) current_user_id #{current_user_id} note_owner_id #{note_owner_id} note_id #{note_id} user_id #{user_id} "}
+    end
+  end
+
+  def delete_contributor(_, %{filter: opts}, %{context: context}) do
+    # i: ID del colaboarador que se quiere eliminar.
+    # nid: ID de la nota de la que se quiere eliminar el colaborador.
+    # owner_id: ID del usuario al que pertenece esta sesión.
+    r = case {opts, context} do
+      {%{type: :id, value: i, nid: nid}, %{current_user: %{id: owner_id}}} when is_binary(i) ->
+        with(
+          {i, _} <- Integer.parse(i),
+          {nid, _} <- Integer.parse(nid),
+          user when not is_nil(user) <- Accounts.get_user_by_id(i),
+          {:ok, %{owner_id: note_owner}} <- Notes.get_access_info(owner_id, nid)
+          # {:ok, %{owner_id: note_owner}} <- Notes.get_access_info(owner_id, nid)
+        ) do
+
+          delete_contributor_priv(owner_id, note_owner, nid, user.id)
+
+        else
+          _ -> {:error, "Invalid data"}
+        end
+      {%{type: :username, value: u, nid: nid}, %{current_user: %{id: owner_id}}} when is_binary(u) ->
+        with(
+          {nid, _} <- Integer.parse(nid),
+          user when not is_nil(user) <- Accounts.get_user_by_username(u),
+          {:ok, %{owner_id: note_owner}} <- Notes.get_access_info(owner_id, nid)
+        ) do
+
+          delete_contributor_priv(owner_id, note_owner, nid, user.id)
+
+        else
+          _ -> {:error, "Invalid data"}
+        end
+    end
+
+    case r do
+      {:ok, _} -> {:ok, %{msg: "ok"}}
+      _ -> r
+    end
+  end
+
   # mutation DeleteNoteUser($data: ID!) {
   #   deleteNoteUser(noteId: $data) {
   #     id

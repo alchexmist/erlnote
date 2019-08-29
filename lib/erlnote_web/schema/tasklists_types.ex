@@ -43,6 +43,16 @@ defmodule ErlnoteWeb.Schema.TasklistsTypes do
     field :can_write, non_null(:boolean)
   end
 
+  @desc "Filtering options for delete contributor"
+  input_object :delete_tasklist_contributor_filter do
+    @desc "ID or USERNAME"
+    field :type, non_null(:add_tasklist_contributor_filter_type)
+    @desc "String value"
+    field :value, non_null(:string)
+    @desc "Target board ID"
+    field :tid, non_null(:id)
+  end
+
   input_object :update_tasklist_access_input do
     field :user_id, non_null(:id)
     field :tasklist_id, non_null(:id)

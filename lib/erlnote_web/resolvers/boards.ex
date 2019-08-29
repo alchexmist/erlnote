@@ -152,7 +152,8 @@ defmodule ErlnoteWeb.Resolvers.Boards do
           {i, _} <- Integer.parse(i),
           {bid, _} <- Integer.parse(bid),
           user when not is_nil(user) <- Accounts.get_user_by_id(i),
-          {:ok, %{owner_id: board_owner}} <- Boards.get_access_info(owner_id, user.id)
+          {:ok, %{owner_id: board_owner}} <- Boards.get_access_info(owner_id, bid)
+          # {:ok, %{owner_id: board_owner}} <- Boards.get_access_info(owner_id, user.id)
         ) do
 
           delete_contributor_priv(owner_id, board_owner, bid, user.id)
@@ -164,7 +165,8 @@ defmodule ErlnoteWeb.Resolvers.Boards do
         with(
           {bid, _} <- Integer.parse(bid),
           user when not is_nil(user) <- Accounts.get_user_by_username(u),
-          {:ok, %{owner_id: board_owner}} <- Boards.get_access_info(owner_id, user.id)
+          {:ok, %{owner_id: board_owner}} <- Boards.get_access_info(owner_id, bid)
+          # {:ok, %{owner_id: board_owner}} <- Boards.get_access_info(owner_id, user.id)
         ) do
 
           delete_contributor_priv(owner_id, board_owner, bid, user.id)

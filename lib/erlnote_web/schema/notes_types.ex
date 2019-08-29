@@ -42,6 +42,16 @@ defmodule ErlnoteWeb.Schema.NotesTypes do
     field :can_write, non_null(:boolean)
   end
 
+  @desc "Filtering options for delete contributor"
+  input_object :delete_note_contributor_filter do
+    @desc "ID or USERNAME"
+    field :type, non_null(:add_note_contributor_filter_type)
+    @desc "String value"
+    field :value, non_null(:string)
+    @desc "Target board ID"
+    field :nid, non_null(:id)
+  end
+
   input_object :update_note_access_input do
     field :user_id, non_null(:id)
     field :note_id, non_null(:id)

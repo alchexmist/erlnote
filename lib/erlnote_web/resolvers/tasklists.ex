@@ -104,6 +104,55 @@ defmodule ErlnoteWeb.Resolvers.Tasklists do
     end
   end
 
+  defp delete_contributor_priv(current_user_id, tasklist_owner_id, tasklist_id, user_id) when is_integer(current_user_id) and is_integer(tasklist_owner_id) and is_integer(tasklist_id) and is_integer(user_id) do
+    # user_id: ID del usuario que se quiere eliminar de la lista de tareas.
+    case {current_user_id, Tasks.get_tasklist(tasklist_id)} do
+      {_, nil} -> {:error, "Invalid tasklist ID"}
+      {^tasklist_owner_id, t} -> Tasks.delete_tasklist(t, user_id)
+      {^user_id, t} -> Tasks.delete_tasklist(t, user_id)
+      _ -> {:error, "Invalid data (delete_contributor_priv) current_user_id #{current_user_id} tasklist_owner_id #{tasklist_owner_id} taslist_id #{tasklist_id} user_id #{user_id} "}
+    end
+  end
+
+  def delete_contributor(_, %{filter: opts}, %{context: context}) do
+    # i: ID del colaboarador que se quiere eliminar.
+    # tid: ID de la lista de tareas de la que se quiere eliminar el colaborador.
+    # owner_id: ID del usuario al que pertenece esta sesión.
+    r = case {opts, context} do
+      {%{type: :id, value: i, tid: tid}, %{current_user: %{id: owner_id}}} when is_binary(i) ->
+        with(
+          {i, _} <- Integer.parse(i),
+          {tid, _} <- Integer.parse(tid),
+          user when not is_nil(user) <- Accounts.get_user_by_id(i),
+          {:ok, %{owner_id: tasklist_owner}} <- Tasks.get_access_info(owner_id, tid)
+          # {:ok, %{owner_id: tasklist_owner}} <- Tasks.get_access_info(owner_id, user.id)
+        ) do
+
+          delete_contributor_priv(owner_id, tasklist_owner, tid, user.id)
+
+        else
+          _ -> {:error, "Invalid data"}
+        end
+      {%{type: :username, value: u, tid: tid}, %{current_user: %{id: owner_id}}} when is_binary(u) ->
+        with(
+          {tid, _} <- Integer.parse(tid),
+          user when not is_nil(user) <- Accounts.get_user_by_username(u),
+          {:ok, %{owner_id: tasklist_owner}} <- Tasks.get_access_info(owner_id, tid)
+        ) do
+
+          delete_contributor_priv(owner_id, tasklist_owner, tid, user.id)
+
+        else
+          _ -> {:error, "Invalid data"}
+        end
+    end
+
+    case r do
+      {:ok, _} -> {:ok, %{msg: "ok"}}
+      _ -> r
+    end
+  end
+
   # mutation UpdateTasklistAccess($tasklistAccessData: UpdateTasklistAccessInput!) {
   #   updateTasklistAccess(input: $tasklistAccessData) {
   #     ... on TasklistAccessInfo {
