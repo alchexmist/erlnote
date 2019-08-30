@@ -525,6 +525,33 @@ defmodule ErlnoteWeb.Schema do
       trigger :update_board, topic: fn board -> "board#{board.id}:updates" end
     end
 
+    # subscription {
+    #   tasklistUpdated(tasklistId: "2") {
+    #     id
+    #     title
+    #     tasks {
+    #       id
+    #       name
+    #       description
+    #       state
+    #       priority
+    #       startDatetime
+    #       endDatetime
+    #     }
+    #     tags {
+    #       id
+    #       name
+    #     }
+    #   }
+    # }
+    field :tasklist_updated, :tasklist do
+      arg :tasklist_id, non_null(:id)
+
+      config fn args, _context -> {:ok, topic: "tasklist#{args.tasklist_id}:updates"} end
+
+      trigger :update_tasklist, topic: fn tasklist -> "tasklist#{tasklist.id}:updates" end
+    end
+
     # End subscription
   end
 
