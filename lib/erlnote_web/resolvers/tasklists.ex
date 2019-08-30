@@ -176,12 +176,14 @@ defmodule ErlnoteWeb.Resolvers.Tasklists do
   def update_tasklist_access(_, %{input: params}, %{context: context}) do
     with(
       %{current_user: %{id: current_user_id}} <- context,
-      %{user_id: user_id, tasklist_id: tasklist_id, can_read: can_read, can_write: can_write} <- params,
+      %{user_name: user_name, tasklist_id: tasklist_id, can_read: can_read, can_write: can_write} <- params,
       {tasklist_id, _} <- Integer.parse(tasklist_id),
       tasklist when not is_nil(tasklist) <- Tasks.get_tasklist(tasklist_id),
-      {user_id, _} <- Integer.parse(user_id)
+      target_user when not is_nil(target_user) <- Accounts.get_user_by_username(user_name)
+      # {user_id, _} <- Integer.parse(user_id)
     ) do
       if tasklist.user_id == current_user_id do
+        user_id = target_user.id
         Tasks.set_can_read_from_tasklist(user_id, tasklist_id, can_read)
         Tasks.set_can_write_to_tasklist(user_id, tasklist_id, can_write)
         Tasks.get_access_info(user_id, tasklist_id)

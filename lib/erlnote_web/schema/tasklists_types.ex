@@ -54,7 +54,7 @@ defmodule ErlnoteWeb.Schema.TasklistsTypes do
   end
 
   input_object :update_tasklist_access_input do
-    field :user_id, non_null(:id)
+    field :user_name, non_null(:string)
     field :tasklist_id, non_null(:id)
     field :can_read, non_null(:boolean)
     field :can_write, non_null(:boolean)
