@@ -17,6 +17,7 @@ defmodule ErlnoteWeb.Schema.TasklistsTypes do
         {:ok, Erlnote.Tasks.get_tags_from_tasklist(tasklist.id)}
       end
     end
+    field :updated_by, :id
   end
   
   input_object :update_tasklist_input do

@@ -32,7 +32,10 @@ defmodule ErlnoteWeb.Resolvers.Tasklists do
       %{tasklist_id: tasklist_id} <- params,
       {tasklist_id, _} <- Integer.parse(tasklist_id)
     ) do
-      Tasks.update_tasklist(user_id, tasklist_id, params)
+      case r = Tasks.update_tasklist(user_id, tasklist_id, params) do
+        {:ok, tasklist} -> {:ok, Map.put(Map.from_struct(tasklist), :updated_by, user_id)}
+        _ -> r
+      end
     else
       _ -> {:error, "Invalid data"}
     end
