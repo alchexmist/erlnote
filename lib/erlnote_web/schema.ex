@@ -561,6 +561,13 @@ defmodule ErlnoteWeb.Schema do
       trigger :update_task_in_tasklist, topic: fn task -> "task#{task.tasklist_id}:#{task.id}:updates" end
     end
 
+    field :tasklist_tag_created, :tag do
+      arg :tasklist_id, non_null(:id)
+
+      config fn args, _context -> {:ok, topic: "tasklist#{args.tasklist_id}:newtag"} end
+
+      trigger :link_tag_to_tasklist, topic: fn tag -> "tasklist#{tag.tasklist_id}:newtag" end
+    end
 
     # End subscription
   end

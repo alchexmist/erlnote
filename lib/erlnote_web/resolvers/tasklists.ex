@@ -209,7 +209,7 @@ defmodule ErlnoteWeb.Resolvers.Tasklists do
     ) do
       case r = Erlnote.Tasks.link_tag_to_tasklist(tasklist_id, id, tag_name) do
         # {:ok, _} -> {:ok, %{msg: "linked"}}
-        {:ok, _} -> {:ok, Erlnote.Tags.get_tag_by_name(tag_name)}
+        {:ok, _} -> {:ok, Map.put(Map.put(Map.from_struct(Erlnote.Tags.get_tag_by_name(tag_name)), :tasklist_id, tasklist_id), :updated_by, id)}
         _ -> r
       end
     else
