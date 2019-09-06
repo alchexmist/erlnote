@@ -31,6 +31,8 @@ defmodule ErlnoteWeb.Schema do
 
   object :msg do
     field :msg, non_null(:string)
+    field :entity_id, :id
+    field :updated_by, :id
   end
 
   interface :accessible_entity do
@@ -567,6 +569,30 @@ defmodule ErlnoteWeb.Schema do
       config fn args, _context -> {:ok, topic: "tasklist#{args.tasklist_id}:newtag"} end
 
       trigger :link_tag_to_tasklist, topic: fn tag -> "tasklist#{tag.tasklist_id}:newtag" end
+    end
+
+    field :tasklist_tag_deleted, :msg do
+      arg :tasklist_id, non_null(:id)
+
+      config fn args, _context -> {:ok, topic: "tasklist#{args.tasklist_id}:deletedtag"} end
+
+      trigger :remove_tag_from_tasklist, topic: fn msg -> "tasklist#{msg.entity_id}:deletedtag" end
+    end
+
+    field :new_task_in_tasklist, :task do
+      arg :tasklist_id, non_null(:id)
+
+      config fn args, _context -> {:ok, topic: "tasklist#{args.tasklist_id}:newtask"} end
+
+      trigger :add_task_to_tasklist, topic: fn task -> "tasklist#{task.tasklist_id}:newtask" end
+    end
+
+    field :deleted_task_in_tasklist, :task do
+      arg :tasklist_id, non_null(:id)
+
+      config fn args, _context -> {:ok, topic: "tasklist#{args.tasklist_id}:deletedtask"} end
+
+      trigger :delete_task_from_tasklist, topic: fn task -> "tasklist#{task.tasklist_id}:deletedtask" end
     end
 
     # End subscription

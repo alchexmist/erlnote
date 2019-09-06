@@ -222,7 +222,7 @@ defmodule ErlnoteWeb.Resolvers.Tasklists do
       {tasklist_id, _} <- Integer.parse(tasklist_id)
     ) do
       case r = Erlnote.Tasks.remove_tag_from_tasklist(tasklist_id, id, tag_name) do
-        %{remove_tag_from_tasklist: _, delete_tag: _} -> {:ok, %{msg: "deleted"}}
+        %{remove_tag_from_tasklist: _, delete_tag: _} -> {:ok, %{msg: tag_name, entity_id: tasklist_id, updated_by: id}}
         :ok -> {:error, "tag name not found"}
         _ -> r
       end
