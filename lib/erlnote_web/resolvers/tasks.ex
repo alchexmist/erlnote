@@ -28,11 +28,29 @@ defmodule ErlnoteWeb.Resolvers.Tasks do
       {tasklist_id, _} <- Integer.parse(tasklist_id)
       #{task_id, _} <- Integer.parse(task_id)
     ) do
-      Tasks.update_task_in_tasklist(user_id, tasklist_id, Map.delete(params, :tasklist_id))
+      case r = Tasks.update_task_in_tasklist(user_id, tasklist_id, Map.delete(params, :tasklist_id)) do
+        {:ok, response} -> {:ok, Map.put(Map.from_struct(response), :updated_by, user_id)}
+        _ -> r
+      end
     else
       _ -> {:error, "Invalid data"}
     end
   end
+  # def update_task(_, %{input: params}, %{context: context}) do
+  #   with(
+  #     %{current_user: %{id: user_id}} <- context,
+  #     %{tasklist_id: tasklist_id, id: _task_id} <- params,
+  #     {tasklist_id, _} <- Integer.parse(tasklist_id)
+  #     #{task_id, _} <- Integer.parse(task_id)
+  #   ) do
+  #     case r = Tasks.update_task_in_tasklist(user_id, tasklist_id, Map.delete(params, :tasklist_id)) do
+  #       {:ok, response} -> {:ok, Map.put(Map.from_struct(response), :tasklist_id, tasklist_id)}
+  #       _ -> r
+  #     end
+  #   else
+  #     _ -> {:error, "Invalid data"}
+  #   end
+  # end
 
 
   def delete_task(_, params, %{context: context}) do

@@ -10,6 +10,7 @@ defmodule ErlnoteWeb.Schema.TasksTypes do
     field :start_datetime, :datetime
     field :end_datetime, :datetime
     field :tasklist_id, :id
+    field :updated_by, :id
   end
 
   input_object :update_task_input do
