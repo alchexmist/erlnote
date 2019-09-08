@@ -45,7 +45,10 @@ defmodule ErlnoteWeb.Resolvers.Notes do
       %{id: n_id} <- params,
       {note_id, _} <- Integer.parse(n_id)
     ) do
-      Notes.update_note(user_id, note_id, params)
+      case r = Notes.update_note(user_id, note_id, params) do
+        {:ok, response} -> {:ok, Map.put(Map.from_struct(response), :updated_by, user_id)}
+        _ -> r
+      end
     else
       _ -> {:error, "Invalid data"}
     end
@@ -74,12 +77,14 @@ defmodule ErlnoteWeb.Resolvers.Notes do
   def update_note_access(_, %{input: params}, %{context: context}) do
     with(
       %{current_user: %{id: current_user_id}} <- context,
-      %{user_id: user_id, note_id: note_id, can_read: can_read, can_write: can_write} <- params,
+      %{user_name: user_name, note_id: note_id, can_read: can_read, can_write: can_write} <- params,
       {note_id, _} <- Integer.parse(note_id),
       note when not is_nil(note) <- Notes.get_note(note_id),
-      {user_id, _} <- Integer.parse(user_id)
+      target_user when not is_nil(target_user) <- Accounts.get_user_by_username(user_name)
+      # {user_id, _} <- Integer.parse(user_id)
     ) do
       if note.user_id == current_user_id do
+        user_id = target_user.id
         Notes.set_can_read_from_note(user_id, note_id, can_read)
         Notes.set_can_write_to_note(user_id, note_id, can_write)
         Notes.get_access_info(user_id, note_id)

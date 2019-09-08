@@ -15,6 +15,7 @@ defmodule ErlnoteWeb.Schema.NotesTypes do
         {:ok, Erlnote.Notes.get_tags_from_note(note.id)}
       end
     end
+    field :updated_by, :id
   end
 
   input_object :update_note_input do
@@ -53,7 +54,7 @@ defmodule ErlnoteWeb.Schema.NotesTypes do
   end
 
   input_object :update_note_access_input do
-    field :user_id, non_null(:id)
+    field :user_name, non_null(:string)
     field :note_id, non_null(:id)
     field :can_read, non_null(:boolean)
     field :can_write, non_null(:boolean)
