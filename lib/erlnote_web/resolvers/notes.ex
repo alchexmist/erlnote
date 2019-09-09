@@ -233,7 +233,8 @@ defmodule ErlnoteWeb.Resolvers.Notes do
       {note_id, _} <- Integer.parse(note_id)
     ) do
       case r = Erlnote.Notes.link_tag_to_note(note_id, id, tag_name) do
-        {:ok, _} -> {:ok, %{msg: "linked"}}
+        # {:ok, _} -> {:ok, %{msg: "linked"}}
+        {:ok, _} -> {:ok, Map.put(Map.put(Map.from_struct(Erlnote.Tags.get_tag_by_name(tag_name)), :note_id, note_id), :updated_by, id)}
         _ -> r
       end
     else

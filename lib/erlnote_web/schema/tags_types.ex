@@ -5,6 +5,7 @@ defmodule ErlnoteWeb.Schema.TagsTypes do
     field :id, non_null(:id)
     field :name, non_null(:string)
     field :tasklist_id, :id
+    field :note_id, :id
     field :updated_by, :id
   end
 

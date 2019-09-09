@@ -234,7 +234,7 @@ defmodule ErlnoteWeb.Schema do
       resolve &Resolvers.Notes.update_note_access/3
     end
 
-    field :link_tag_to_note, :msg do
+    field :link_tag_to_note, :tag do
       arg :note_id, non_null(:id)
       arg :tag_name, non_null(:string)
       middleware Middleware.Authorize
