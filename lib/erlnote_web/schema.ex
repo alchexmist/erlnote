@@ -595,6 +595,14 @@ defmodule ErlnoteWeb.Schema do
       trigger :delete_task_from_tasklist, topic: fn task -> "tasklist#{task.tasklist_id}:deletedtask" end
     end
 
+    field :note_updated, :note do
+      arg :note_id, non_null(:id)
+
+      config fn args, _context -> {:ok, topic: "note#{args.note_id}:updates"} end
+
+      trigger :update_note, topic: fn note -> "note#{note.id}:updates" end
+    end
+
     # End subscription
   end
 
