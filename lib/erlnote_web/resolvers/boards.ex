@@ -205,11 +205,12 @@ defmodule ErlnoteWeb.Resolvers.Boards do
     with(
       {board_id, _} <- Integer.parse(board_id),
       %{current_user: %{id: user_id}} <- context,
-      board when not is_nil(board) <- Boards.get_board(board_id)
+      board when not is_nil(board) <- Boards.get_board_include_deleted(board_id)
     ) do
       Boards.delete_board(board, user_id)
     else
-      _ -> {:error, "Invalid data"}
+      _ -> 
+        {:error, "Invalid data"}
     end
   end
 

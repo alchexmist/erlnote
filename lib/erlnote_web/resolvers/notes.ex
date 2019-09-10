@@ -220,7 +220,7 @@ defmodule ErlnoteWeb.Resolvers.Notes do
     with(
       {note_id, _} <- Integer.parse(note_id),
       %{current_user: %{id: user_id}} <- context,
-      note when not is_nil(note) <- Notes.get_note(note_id)
+      note when not is_nil(note) <- Notes.get_note_include_deleted(note_id)
     ) do
       Notes.delete_note(note, user_id)
     else
@@ -247,7 +247,8 @@ defmodule ErlnoteWeb.Resolvers.Notes do
       {note_id, _} <- Integer.parse(note_id)
     ) do
       case r = Erlnote.Notes.remove_tag_from_note(note_id, id, tag_name) do
-        %{remove_tag_from_note: _, delete_tag: _} -> {:ok, %{msg: "deleted"}}
+        %{remove_tag_from_note: _, delete_tag: _} -> {:ok, %{msg: tag_name, entity_id: note_id, updated_by: id}}
+        # %{remove_tag_from_note: _, delete_tag: _} -> {:ok, %{msg: "deleted"}}
         :ok -> {:error, "tag name not found"}
         _ -> r
       end

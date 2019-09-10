@@ -603,6 +603,22 @@ defmodule ErlnoteWeb.Schema do
       trigger :update_note, topic: fn note -> "note#{note.id}:updates" end
     end
 
+    field :note_tag_created, :tag do
+      arg :note_id, non_null(:id)
+
+      config fn args, _context -> {:ok, topic: "note#{args.note_id}:newtag"} end
+
+      trigger :link_tag_to_note, topic: fn tag -> "note#{tag.note_id}:newtag" end
+    end
+
+    field :note_tag_deleted, :msg do
+      arg :note_id, non_null(:id)
+
+      config fn args, _context -> {:ok, topic: "note#{args.note_id}:deletedtag"} end
+
+      trigger :remove_tag_from_note, topic: fn msg -> "note#{msg.entity_id}:deletedtag" end
+    end
+
     # End subscription
   end
 

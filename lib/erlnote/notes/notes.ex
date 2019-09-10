@@ -97,6 +97,10 @@ defmodule Erlnote.Notes do
     Repo.one(from n in Note, where: n.id == ^id and n.deleted == false)
   end
 
+  def get_note_include_deleted(id) when is_integer(id) do
+    Repo.one(from n in Note, where: n.id == ^id)
+  end
+
   @doc """
   Updates a note.
 

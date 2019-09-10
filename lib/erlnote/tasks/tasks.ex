@@ -97,6 +97,10 @@ defmodule Erlnote.Tasks do
     Repo.one(from t in Tasklist, where: t.id == ^id and t.deleted == false)
   end
 
+  def get_tasklist_include_deleted(id) when is_integer(id) do
+    Repo.one(from t in Tasklist, where: t.id == ^id)
+  end
+
   @doc """
   Updates a tasklist.
 

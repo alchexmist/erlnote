@@ -55,7 +55,7 @@ defmodule ErlnoteWeb.Resolvers.Tasklists do
     with(
       {tasklist_id, _} <- Integer.parse(tasklist_id),
       %{current_user: %{id: user_id}} <- context,
-      tasklist when not is_nil(tasklist) <- Tasks.get_tasklist(tasklist_id)
+      tasklist when not is_nil(tasklist) <- Tasks.get_tasklist_include_deleted(tasklist_id)
     ) do
       Tasks.delete_tasklist(tasklist, user_id)
     else
