@@ -14,6 +14,8 @@ defmodule ErlnoteWeb.Schema do
   alias ErlnoteWeb.Resolvers
   alias ErlnoteWeb.Schema.Middleware
 
+  alias Erlnote.Boards
+  
   object :user do
     field :id, :id
     field :name, :string
@@ -138,6 +140,20 @@ defmodule ErlnoteWeb.Schema do
             :board -> Erlnote.Boards.get_access_info(user_id, eid)
             :tasklist -> Erlnote.Tasks.get_access_info(user_id, eid)
           end
+        else
+          _ -> {:error, "Invalid data"}
+        end  
+      end
+    end
+
+    field :get_board_contributors, :board_contributors do
+      arg :board_id, non_null(:id)
+      middleware Middleware.Authorize
+      resolve fn _, %{board_id: board_id}, %{context: %{current_user: %{id: user_id}}} ->
+        with(
+          {bid, _} <- Integer.parse(board_id)
+        ) do
+          {:ok, %{usernames: Boards.get_board_contributors(bid), board_id: bid}}
         else
           _ -> {:error, "Invalid data"}
         end  

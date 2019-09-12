@@ -114,6 +114,13 @@ defmodule Erlnote.Boards do
     Repo.one(from b in Board, where: b.id == ^id)
   end
 
+  def get_board_contributors(id) when is_integer(id) do
+    Enum.map(
+      Enum.map(Repo.all(from bu in BoardUser, where: bu.board_id == ^id, select: bu.user_id), &Accounts.get_user_by_id/1),
+      fn u -> u.username end
+    )
+  end
+
   def get_access_info(user_id, board_id) when is_integer(user_id) and is_integer(board_id) do
     case  board = get_board(board_id) do
       nil -> {:error, "invalid data"}
